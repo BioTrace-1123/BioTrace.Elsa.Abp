@@ -1,0 +1,30 @@
+{
+  "name": "BioTrace.Elsa.Abp",
+  "dockerComposeFile": ["../docker-compose.yml", "docker-compose.yml"],
+  "service": "dev",
+  "workspaceFolder": "/workspaces/BioTrace.Elsa.Abp",
+  "forwardPorts": [44388, 44389, 5432],
+  "portsAttributes": {
+    "44388": { "label": "HttpApi.Host HTTPS", "onAutoForward": "notify" },
+    "44389": { "label": "HttpApi.Host HTTP" },
+    "5432": { "label": "PostgreSQL" }
+  },
+  "remoteEnv": {
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
+    "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres"
+  },
+  "postCreateCommand": "dotnet dev-certs https --trust && dotnet restore BioTrace.Elsa.Abp.slnx",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "BioTrace.Elsa.Abp.slnx"
+      }
+    }
+  }
+}
