@@ -1,11 +1,14 @@
 services:
   dev:
     build:
-      context: .
+      context: .devcontainer
       dockerfile: Dockerfile
     volumes:
-      - ..:/workspaces/BioTrace.Elsa.Abp:cached
+      - .:/workspaces/BioTrace.Elsa.Abp:cached
     command: sleep infinity
     depends_on:
       postgres:
         condition: service_healthy
+
+  postgres:
+    ports: !reset []

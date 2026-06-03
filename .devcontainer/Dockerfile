@@ -12,10 +12,16 @@ RUN apt-get update \
         postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-RUN groupadd --gid $USER_GID $USERNAME \
-    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+RUN existing_group="$(getent group "${USER_GID}" | cut -d: -f1)" \
+    && if [ "${existing_group}" != "${USERNAME}" ]; then \
+        groupmod -n "${USERNAME}" "${existing_group}"; \
+    fi \
+    && existing_user="$(getent passwd "${USER_UID}" | cut -d: -f1)" \
+    && if [ "${existing_user}" != "${USERNAME}" ]; then \
+        usermod -l "${USERNAME}" -d "/home/${USERNAME}" -m "${existing_user}"; \
+    fi \
     && mkdir -p /workspaces \
-    && chown -R $USERNAME:$USERNAME /workspaces
+    && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
 USER $USERNAME
 WORKDIR /workspaces/BioTrace.Elsa.Abp
