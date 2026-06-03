@@ -7,6 +7,10 @@
 - .NET 10
 - ABP 10.4（DDD 模块模板）
 - Entity Framework Core
+- [Elsa Workflows](https://elsaworkflows.io/) **3.5.3**（原生集成，非 ABP Elsa Pro）
+- PostgreSQL（Elsa 持久化；与 ABP 业务库分离）
+
+> Elsa 核心包最新为 3.7.x，但 `Elsa.EntityFrameworkCore.PostgreSql` 目前最高为 **3.5.3**，故本模块统一锁定 **3.5.3** 以避免版本冲突。
 
 ## 解决方案结构
 
@@ -15,15 +19,57 @@ src/
   BioTrace.Elsa.Abp.Domain.Shared
   BioTrace.Elsa.Abp.Domain
   BioTrace.Elsa.Abp.Application.Contracts
-  BioTrace.Elsa.Abp.Application
-  BioTrace.Elsa.Abp.EntityFrameworkCore
+  BioTrace.Elsa.Abp.Application          # 含示例 Activity（PrintMessageActivity）
+  BioTrace.Elsa.Abp.EntityFrameworkCore  # ABP 业务 DbContext（连接名 Abp）
+  BioTrace.Elsa.Abp.AspNetCore           # Elsa 服务注册（连接名 Elsa）
   BioTrace.Elsa.Abp.HttpApi
   BioTrace.Elsa.Abp.HttpApi.Client
   BioTrace.Elsa.Abp.Installer
+host/
+  BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主
 test/
   BioTrace.Elsa.Abp.TestBase
   BioTrace.Elsa.Abp.*.Tests
 ```
+
+## 宿主集成清单
+
+引用本模块的 ABP 应用**必须**单独配置 Elsa 数据库；仅引用 NuGet/项目**不会**自动创建 Elsa 表。
+
+1. 在宿主启动模块上添加依赖：
+   ```csharp
+   [DependsOn(typeof(ElsaAbpAspNetCoreModule), typeof(AbpHttpApiModule))]
+   ```
+2. 在 `appsettings.json` 中配置**独立**连接串（名称默认为 `Elsa`，与 `Abp` 业务库分离）：
+   ```json
+   {
+     "ConnectionStrings": {
+       "Abp": "Host=...;Database=your_abp_db;...",
+       "Elsa": "Host=...;Database=your_elsa_db;..."
+     },
+     "Elsa": {
+       "RunMigrations": true,
+       "EnableWorkflowsApi": true,
+       "EnableHttpActivities": true
+     }
+   }
+   ```
+3. 在宿主 `OnApplicationInitialization` 中映射 Elsa 中间件（可调用扩展方法 `app.UseElsaWorkflows()`）。
+4. （可选）在宿主模块中重写 `ElsaAbpAspNetCoreModule` 的 `ConfigureElsa` / `ConfigureElsaActivities` 以注册更多 Activity。
+5. Elsa 表由 Elsa EF 迁移维护，**不会**出现在 `AbpDbContext` 的迁移中。
+
+未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured` 业务异常。
+
+## 本地运行 Host（PostgreSQL）
+
+```bash
+docker compose up -d
+dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
+```
+
+- API / Swagger：`https://localhost:44388`
+- Elsa Workflows API：由 `UseWorkflowsApi` 暴露（路径以 Elsa 默认为准）
+- `docker/postgres/init` 会创建 `BioTrace_Abp` 与 `BioTrace_Elsa` 两个库
 
 ## 本地开发
 
@@ -35,7 +81,7 @@ dotnet build BioTrace.Elsa.Abp.slnx
 dotnet test BioTrace.Elsa.Abp.slnx
 ```
 
-在宿主应用中引用本模块时，在启动模块上添加 `[DependsOn(typeof(AbpHttpApiModule))]`（或按需引用各层 `*Module`）。
+在宿主应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「宿主集成清单」）。
 
 ## Git Flow
 
