@@ -21,4 +21,8 @@
         <Project Path="test/BioTrace.Elsa.Abp.Domain.Tests/BioTrace.Elsa.Abp.Domain.Tests.csproj" />
         <Project Path="test/BioTrace.Elsa.Abp.Application.Tests/BioTrace.Elsa.Abp.Application.Tests.csproj" />
     </Folder>
+
+    <Folder Name="/host/">
+        <Project Path="host/BioTrace.Elsa.Abp.HttpApi.Host/BioTrace.Elsa.Abp.HttpApi.Host.csproj" />
+    </Folder>
 </Solution>

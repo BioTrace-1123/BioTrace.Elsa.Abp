@@ -1,0 +1,2 @@
+CREATE DATABASE "BioTrace_Abp";
+CREATE DATABASE "BioTrace_Elsa";

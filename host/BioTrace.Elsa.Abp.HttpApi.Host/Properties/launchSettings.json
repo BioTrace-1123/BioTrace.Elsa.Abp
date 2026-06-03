@@ -1,0 +1,13 @@
+{
+  "profiles": {
+    "BioTrace.Elsa.Abp.HttpApi.Host": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "applicationUrl": "https://localhost:44388;http://localhost:44389",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
