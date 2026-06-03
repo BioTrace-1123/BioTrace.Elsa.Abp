@@ -1,0 +1,37 @@
+---
+description: BioTrace.Elsa.Abp 中 Elsa 3.x 与 ABP 模块的集成约定（版本、分层、数据库）
+globs: src/BioTrace.Elsa.Abp.AspNetCore/**,host/**,src/BioTrace.Elsa.Abp.Application/Workflows/**
+alwaysApply: false
+---
+
+# Elsa 3.x 集成约定
+
+## 与 ABP 的关系
+
+- 使用 **原生 Elsa 3.x** NuGet，不依赖 `Volo.Abp.Elsa.*`（Elsa Pro）。
+- Elsa **不**映射到 `AbpDbContext`；持久化使用 Elsa 自带 Management/Runtime DbContext 与迁移。
+- `OnApplicationInitialization` 中的 Elsa 中间件（`UseElsaWorkflows` / `UseWorkflowsApi`）**仅写在 Host**，可复用模块只注册 `AddElsa` 服务。
+
+## NuGet 版本（必须成套）
+
+所有 `Elsa*` / `Elsa.EntityFrameworkCore.*` / `Elsa.Http` / `Elsa.Workflows.Api` 使用 **同一版本线**（当前为 **3.5.3**）。
+
+原因：`Elsa` 元包可能已到 3.7，而 `Elsa.EntityFrameworkCore.PostgreSql` 等卫星包发布较慢；混用会导致还原失败或扩展方法/API 不兼容。升级时先在 nuget.org 确认 **全部** 相关包均有目标版本，再一次性升级。
+
+## 连接串
+
+- ABP 业务库：`ConnectionStrings:Abp`（`AbpDbProperties.ConnectionStringName`）。
+- Elsa 工作流库：`ConnectionStrings:Elsa`（`ElsaAbpDbProperties.ConnectionStringName`），**消费者必填**，与 Abp 分离。
+- 未配置 Elsa 连接串时抛出 `Abp:ElsaConnectionStringNotConfigured`。
+
+## 扩展点（可复用模块）
+
+- `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / `ConfigureElsaActivities` 为 **virtual**。
+- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableHttpActivities`）。
+- 自定义 Activity 放在 Application 层，用 `AddActivitiesFrom<AbpApplicationModule>()` 注册。
+
+## 宿主集成清单
+
+1. `[DependsOn(typeof(ElsaAbpAspNetCoreModule))]`
+2. 配置 `ConnectionStrings:Elsa` 与 `Elsa` 节点
+3. Host 管道中 `app.UseElsaWorkflows()`

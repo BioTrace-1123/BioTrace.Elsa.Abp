@@ -1,0 +1,61 @@
+---
+description: 功能分支采用中文、按逻辑分次的原子提交，便于从 git log 读懂变更意图
+alwaysApply: true
+---
+
+# 中文原子提交（Git）
+
+## 何时分次提交
+
+一个功能分支（如 `feature/elsa3-integration`）应拆成 **多条可独立理解的提交**，而不是一次 `git commit -a`。读者仅看 `git log --oneline` 应能还原：**做了什么、关键点、顺序**。
+
+## 提交顺序建议
+
+1. **领域/配置基础**（选项、常量、错误码、本地化）
+2. **核心集成层**（新模块项目、服务注册、无 Host 中间件）
+3. **业务示例**（Activity、应用服务扩展）
+4. **宿主与基础设施**（HttpApi.Host、docker、连接串示例）
+5. **文档**（README 集成说明、版本策略）
+6. **工具/规则**（`.cursor/rules`、CI 等，若与功能相关可单独一条）
+
+## 提交信息格式
+
+使用 **简体中文**，Conventional Commits 前缀 + 范围：
+
+```
+<type>(<scope>): <简短说明>
+
+可选正文：关键点、不包含的内容、版本决策等。
+```
+
+| type | 用途 |
+|------|------|
+| `feat` | 新能力 |
+| `fix` | 缺陷修复 |
+| `docs` | 仅文档 |
+| `chore` | 构建、sln、规则、无业务逻辑 |
+| `refactor` | 行为不变的重构 |
+
+**scope 示例**：`domain`、`aspnetcore`、`application`、`host`、`docker`、`docs`、`rules`
+
+## 示例（Elsa 集成分支）
+
+```
+feat(domain): 添加 Elsa 连接串约定与 ElsaAbpOptions
+feat(aspnetcore): 新增 ElsaAbpAspNetCore 模块并注册 Elsa 3.5.3 PostgreSQL 持久化
+feat(application): 添加 PrintMessage 示例 Activity
+feat(host): 添加 HttpApi.Host 与 PostgreSQL 本地验证环境
+docs: 补充 README 宿主集成清单与 Elsa 版本对齐说明
+chore(rules): 添加 Elsa 集成与中文原子提交 Cursor 规则
+```
+
+## 禁止
+
+- 在未要求时不要把无关重构、格式化与功能混在同一提交。
+- 不要用英文提交信息（本仓库功能分支默认中文，除非用户明确要求英文）。
+- 不要 `git commit --amend` 合并已推送的提交，除非用户明确要求。
+
+## 执行注意
+
+- 仅 `git add` 当前提交范围内的文件；每步提交后 `git status` 应干净或仅剩下一批文件。
+- 提交前确认不包含密钥、`.env` 等敏感文件。
