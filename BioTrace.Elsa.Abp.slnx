@@ -1,0 +1,23 @@
+<Solution>
+    <Configurations>
+        <Platform Name="Any CPU" />
+    </Configurations>
+
+    <Folder Name="/src/">
+        <Project Path="src/BioTrace.Elsa.Abp.Domain.Shared/BioTrace.Elsa.Abp.Domain.Shared.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Domain/BioTrace.Elsa.Abp.Domain.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Application.Contracts/BioTrace.Elsa.Abp.Application.Contracts.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Application/BioTrace.Elsa.Abp.Application.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj" />
+    </Folder>
+    
+    <Folder Name="/test/">
+        <Project Path="test/BioTrace.Elsa.Abp.TestBase/BioTrace.Elsa.Abp.TestBase.csproj" />
+        <Project Path="test/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests.csproj" />
+        <Project Path="test/BioTrace.Elsa.Abp.Domain.Tests/BioTrace.Elsa.Abp.Domain.Tests.csproj" />
+        <Project Path="test/BioTrace.Elsa.Abp.Application.Tests/BioTrace.Elsa.Abp.Application.Tests.csproj" />
+    </Folder>
+</Solution>

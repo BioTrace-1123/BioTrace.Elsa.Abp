@@ -1,0 +1,58 @@
+{
+  "folders": {
+    "items": {
+      "src": {},
+      "test": {}
+    }
+  },
+  "packages": {
+    "BioTrace.Elsa.Abp.Domain": {
+      "path": "src/BioTrace.Elsa.Abp.Domain/BioTrace.Elsa.Abp.Domain.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.Application.Contracts": {
+      "path": "src/BioTrace.Elsa.Abp.Application.Contracts/BioTrace.Elsa.Abp.Application.Contracts.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.Application": {
+      "path": "src/BioTrace.Elsa.Abp.Application/BioTrace.Elsa.Abp.Application.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.EntityFrameworkCore": {
+      "path": "src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.HttpApi": {
+      "path": "src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.HttpApi.Client": {
+      "path": "src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.TestBase": {
+      "path": "test/BioTrace.Elsa.Abp.TestBase/BioTrace.Elsa.Abp.TestBase.abppkg",
+      "folder": "test"
+    },
+    "BioTrace.Elsa.Abp.EntityFrameworkCore.Tests": {
+      "path": "test/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests.abppkg",
+      "folder": "test"
+    },
+    "BioTrace.Elsa.Abp.Domain.Tests": {
+      "path": "test/BioTrace.Elsa.Abp.Domain.Tests/BioTrace.Elsa.Abp.Domain.Tests.abppkg",
+      "folder": "test"
+    },
+    "BioTrace.Elsa.Abp.Application.Tests": {
+      "path": "test/BioTrace.Elsa.Abp.Application.Tests/BioTrace.Elsa.Abp.Application.Tests.abppkg",
+      "folder": "test"
+    },
+    "BioTrace.Elsa.Abp.Domain.Shared": {
+      "path": "src/BioTrace.Elsa.Abp.Domain.Shared/BioTrace.Elsa.Abp.Domain.Shared.abppkg",
+      "folder": "src"
+    },
+    "BioTrace.Elsa.Abp.Installer": {
+       "path": "src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.abppkg",
+       "folder": "src"
+    }
+  }
+}

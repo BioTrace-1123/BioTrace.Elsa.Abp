@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore BioTrace.Elsa.Abp.slnx
+
+      - name: Build
+        run: dotnet build BioTrace.Elsa.Abp.slnx --no-restore -c Release
+
+      - name: Test
+        run: dotnet test BioTrace.Elsa.Abp.slnx --no-build -c Release --verbosity normal

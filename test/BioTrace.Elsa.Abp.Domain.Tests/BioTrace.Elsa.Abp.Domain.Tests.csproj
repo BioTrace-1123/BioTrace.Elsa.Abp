@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BioTrace.Elsa.Abp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.Domain\BioTrace.Elsa.Abp.Domain.csproj" />
+    <ProjectReference Include="..\BioTrace.Elsa.Abp.TestBase\BioTrace.Elsa.Abp.TestBase.csproj" />
+  </ItemGroup>
+
+
+</Project>

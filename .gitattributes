@@ -1,0 +1,33 @@
+# GitHub / .NET line-ending and diff defaults
+# https://github.com/github/gitattributes/blob/master/Global.gitattributes
+
+* text=auto
+
+*.cs     text diff=csharp
+*.csproj text diff=csharp
+*.sln    text diff=csharp
+*.slnx   text diff=csharp
+*.props  text
+*.targets text
+*.json   text
+*.md     text
+*.yml    text
+*.yaml   text
+
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.woff   binary
+*.woff2  binary
+
+# Windows scripts
+*.{cmd,[Cc]s,[Bb]at} text eol=crlf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Linguist: mark generated / vendor paths (optional, improves GitHub language stats)
+**/bin/** linguist-generated
+**/obj/** linguist-generated

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>BioTrace.Elsa.Abp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="10.4.0" />
+    <ProjectReference Include="..\BioTrace.Elsa.Abp.Domain\BioTrace.Elsa.Abp.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

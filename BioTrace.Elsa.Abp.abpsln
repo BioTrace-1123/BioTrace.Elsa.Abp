@@ -1,0 +1,9 @@
+{
+  "id": "da0499ad-63ed-41d1-bc08-0c24f11456d0",
+  "template": "empty",
+  "modules": {
+    "BioTrace.Elsa.Abp": {
+      "path": "BioTrace.Elsa.Abp.abpmdl"
+    }
+  }
+}
