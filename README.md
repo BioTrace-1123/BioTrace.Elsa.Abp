@@ -71,6 +71,29 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 - Elsa Workflows API：由 `UseWorkflowsApi` 暴露（路径以 Elsa 默认为准）
 - `docker/postgres/init` 会创建 `BioTrace_Abp` 与 `BioTrace_Elsa` 两个库
 
+## 使用 Dev Container（推荐）
+
+克隆仓库后，可用 VS Code / Cursor 的 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) 一键进入容器化开发环境（含 PostgreSQL 与 .NET 10 SDK）。
+
+**前置**：安装 Docker Desktop，以及 Dev Containers 扩展。
+
+1. 打开仓库根目录。
+2. 命令面板执行 **Dev Containers: Reopen in Container**。
+3. 等待镜像构建与 `postCreate`（`dotnet dev-certs https --trust`、`dotnet restore`）。
+4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
+5. 浏览器访问 `https://localhost:44388`（Swagger）。
+
+容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Abp` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。
+
+**常见问题**
+
+| 现象 | 处理 |
+|------|------|
+| 宿主机 `5432` 已被占用 | 停止本地 PostgreSQL，或临时修改根目录 `docker-compose.yml` 的端口映射 |
+| HTTPS 证书不受信任 | 在容器终端执行 `dotnet dev-certs https --trust` |
+| 数据库未就绪 | 确认 `docker compose` 中 `postgres` 健康检查通过后再启动 Host |
+| 不用容器、仅在宿主机开发 | 仍按上文「本地运行 Host」：`docker compose up -d` + `dotnet run` |
+
 ## 本地开发
 
 **要求**： [.NET SDK 10](https://dotnet.microsoft.com/download)（见仓库根目录 `global.json`）
