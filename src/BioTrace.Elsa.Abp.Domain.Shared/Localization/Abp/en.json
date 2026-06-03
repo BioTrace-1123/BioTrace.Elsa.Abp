@@ -2,6 +2,7 @@
   "culture": "en",
   "texts": {
     "MyAccount":  "My account",
-    "SamplePageMessage": "A sample page for the Abp module"
+    "SamplePageMessage": "A sample page for the Abp module",
+    "Abp:ElsaConnectionStringNotConfigured": "Connection string '{ConnectionStringName}' is not configured. Add it under ConnectionStrings in appsettings."
   }
 }
