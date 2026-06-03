@@ -9,6 +9,7 @@
         <Project Path="src/BioTrace.Elsa.Abp.Application.Contracts/BioTrace.Elsa.Abp.Application.Contracts.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.Application/BioTrace.Elsa.Abp.Application.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj" />
