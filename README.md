@@ -75,9 +75,9 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 克隆仓库后，可用 VS Code / Cursor 的 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) 一键进入容器化开发环境（含 PostgreSQL 与 .NET 10 SDK）。
 
-**前置**：安装 Docker Desktop，以及 Dev Containers 扩展。
+**前置**：安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（启用 **WSL 2** 引擎），以及 Dev Containers 扩展。仓库在 WSL 内时，须在 Docker Desktop → **Settings → Resources → WSL integration** 中为 **Ubuntu** 打开集成，并在 WSL 终端能执行 `docker version`。
 
-1. 打开仓库根目录。
+1. 打开仓库根目录（推荐：先用 **WSL: Connect to WSL** 打开 `/root/source/repos/BioTrace.Elsa.Abp`，再 **Reopen in Container**；避免仅从 Windows 侧打开 `\\wsl.localhost\...` 却未启用 WSL 集成）。
 2. 命令面板执行 **Dev Containers: Reopen in Container**。
 3. 等待镜像构建与 `postCreate`（`dotnet dev-certs https --trust`、`dotnet restore`）。
 4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
@@ -89,6 +89,8 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 | 现象 | 处理 |
 |------|------|
+| `Failed to install Cursor server` / `docker compose up` 失败；日志含 `ubuntu.sock: no such file or directory` 或 `distro mount service` | 在 Docker Desktop 为 **Ubuntu** 启用 WSL integration；PowerShell 执行 `wsl -d Ubuntu` 启动发行版后 `wsl --shutdown`，重启 Docker Desktop，再 **Reopen in Container**。仍失败则改为在 WSL 内打开项目，或将仓库克隆到 Windows 路径（如 `C:\dev\`）后重试 |
+| WSL 内提示 `docker: command not found` | 同上，打开 Docker Desktop 的 WSL integration；不要只在 WSL 里装 `docker.io` 却未连上 Desktop |
 | 宿主机 `5432` 已被占用 | 停止本地 PostgreSQL，或临时修改根目录 `docker-compose.yml` 的端口映射 |
 | HTTPS 证书不受信任 | 在容器终端执行 `dotnet dev-certs https --trust` |
 | 数据库未就绪 | 确认 `docker compose` 中 `postgres` 健康检查通过后再启动 Host |
