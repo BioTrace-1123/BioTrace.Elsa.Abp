@@ -96,6 +96,35 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 | 数据库未就绪 | 确认 `docker compose` 中 `postgres` 健康检查通过后再启动 Host |
 | 不用容器、仅在宿主机开发 | 仍按上文「本地运行 Host」：`docker compose up -d` + `dotnet run` |
 
+## 在 WSL 中使用 Cursor（性能与 Git 界面）
+
+本仓库位于 WSL **ext4**（`/root/source/repos/...`），磁盘顺序读约 **2.3 GB/s**、4K 随机读 IOPS 约 **2.4 万**；若放在 Windows 盘（`/mnt/c`，9p）则慢约 **10–16 倍**，IDE 索引与 `git status` 会明显卡顿。**请保持仓库在 WSL 内，不要迁到 `C:\`。**
+
+### 推荐打开方式（避免 Git 面板残留、Explorer 不刷新）
+
+| 方式 | 说明 |
+|------|------|
+| **推荐** | 安装 [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) 扩展 → **WSL: Connect to WSL** → 打开 `/root/source/repos/BioTrace.Elsa.Abp` |
+| **可选** | 在 WSL 终端执行 `cursor .`（在仓库根目录） |
+| **不推荐** | 仅从 Windows 资源管理器打开 `\\wsl.localhost\Ubuntu\...` 且左下角**未**显示 `WSL: Ubuntu` — Git/文件监视易失效 |
+
+命令行或 Agent 在**集成终端外**执行 `git commit` 后，Source Control 有时不会立刻更新（WSL2 对 `.git/index` 的 rename 监视不稳定）。处理：
+
+1. 切回 Cursor 窗口（已启用 `git.refreshOnWindowFocus`）或命令面板 **Git: Refresh**
+2. 仓库内已配置 `.vscode/settings.json`：`git.autorefresh`、`git.autofetch: false`（本仓库）、排除 `bin`/`obj` 监视
+3. 若仍偶发不刷新：用户设置中临时设 `"remote.WSL.fileWatcher.polling": true` 后 **Reload Window**
+
+### WSL 一次性调优（需 sudo）
+
+```bash
+# 提高 inotify 上限，避免大仓库监视耗尽
+grep -q fs.inotify.max_user_watches /etc/sysctl.conf || \
+  echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+```
+
+可选：在 Windows 用户目录 `%UserProfile%\.wslconfig` 中限制 WSL 内存，避免与 Cursor 争抢（示例 `[wsl2] memory=8GB`）。
+
 ## 本地开发
 
 **要求**： [.NET SDK 10](https://dotnet.microsoft.com/download)（见仓库根目录 `global.json`）
