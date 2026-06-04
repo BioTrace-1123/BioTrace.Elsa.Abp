@@ -20,6 +20,7 @@
         <Project Path="test/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests/BioTrace.Elsa.Abp.EntityFrameworkCore.Tests.csproj" />
         <Project Path="test/BioTrace.Elsa.Abp.Domain.Tests/BioTrace.Elsa.Abp.Domain.Tests.csproj" />
         <Project Path="test/BioTrace.Elsa.Abp.Application.Tests/BioTrace.Elsa.Abp.Application.Tests.csproj" />
+        <Project Path="test/BioTrace.Elsa.Abp.AspNetCore.Tests/BioTrace.Elsa.Abp.AspNetCore.Tests.csproj" />
     </Folder>
 
     <Folder Name="/host/">
