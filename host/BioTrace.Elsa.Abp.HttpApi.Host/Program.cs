@@ -1,4 +1,5 @@
 using BioTrace.Elsa.Abp;
+using BioTrace.Elsa.Abp.Data;
 using Serilog;
 using Serilog.Events;
 
@@ -17,6 +18,11 @@ try
 
     await builder.AddApplicationAsync<AbpHttpApiHostModule>();
 
+    if (!IsEfDesignTime())
+    {
+        builder.Services.AddHostedService<ElsaAbpHostDatabaseMigrationHostedService>();
+    }
+
     var app = builder.Build();
     await app.InitializeApplicationAsync();
     await app.RunAsync();
@@ -31,4 +37,12 @@ catch (Exception ex)
 finally
 {
     await Log.CloseAndFlushAsync();
+}
+
+static bool IsEfDesignTime()
+{
+    return string.Equals(
+        Environment.GetEnvironmentVariable("DOTNET_HOST_FACTORY_RESOLVER"),
+        "EF",
+        StringComparison.OrdinalIgnoreCase);
 }
