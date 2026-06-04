@@ -3,6 +3,29 @@
   "texts": {
     "MyAccount":  "My account",
     "SamplePageMessage": "A sample page for the Abp module",
-    "Abp:ElsaConnectionStringNotConfigured": "Connection string '{ConnectionStringName}' is not configured. Add it under ConnectionStrings in appsettings."
+    "Abp:ElsaConnectionStringNotConfigured": "Connection string '{ConnectionStringName}' is not configured. Add it under ConnectionStrings in appsettings.",
+    "Permission:Abp": "Abp",
+    "Permission:Abp.Elsa": "Elsa Workflows",
+    "Permission:Abp.Elsa.Admin": "Elsa administrator (all API permissions)",
+    "Permission:Abp.Elsa.NotReadOnly": "Modify read-only workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions": "Workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions.Read": "Read workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions.Write": "Write workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions.Publish": "Publish workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions.Retract": "Retract workflow definitions",
+    "Permission:Abp.Elsa.WorkflowDefinitions.Delete": "Delete workflow definitions",
+    "Permission:Abp.Elsa.WorkflowInstances": "Workflow instances",
+    "Permission:Abp.Elsa.WorkflowInstances.Read": "Read workflow instances",
+    "Permission:Abp.Elsa.WorkflowInstances.Write": "Write workflow instances",
+    "Permission:Abp.Elsa.WorkflowInstances.Delete": "Delete workflow instances",
+    "Permission:Abp.Elsa.WorkflowInstances.Cancel": "Cancel workflow instances",
+    "Permission:Abp.Elsa.WorkflowInstances.Execute": "Execute workflow instances",
+    "Permission:Abp.Elsa.Alterations": "Alterations",
+    "Permission:Abp.Elsa.Alterations.Read": "Read alterations",
+    "Permission:Abp.Elsa.Alterations.Write": "Write alterations",
+    "Permission:Abp.Elsa.Tasks": "Tasks",
+    "Permission:Abp.Elsa.Tasks.Complete": "Complete tasks",
+    "Permission:Abp.Elsa.HttpEndpoints": "HTTP workflow endpoints",
+    "Permission:Abp.Elsa.HttpEndpoints.Invoke": "Invoke HTTP workflow endpoints"
   }
 }
