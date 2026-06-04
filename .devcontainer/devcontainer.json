@@ -23,7 +23,15 @@
         "ms-azuretools.vscode-docker"
       ],
       "settings": {
-        "dotnet.defaultSolution": "BioTrace.Elsa.Abp.slnx"
+        "dotnet.defaultSolution": "BioTrace.Elsa.Abp.slnx",
+        "git.autorefresh": true,
+        "git.refreshOnWindowFocus": true,
+        "git.autofetch": false,
+        "files.watcherExclude": {
+          "**/.git/objects/**": true,
+          "**/bin/**": true,
+          "**/obj/**": true
+        }
       }
     }
   }
