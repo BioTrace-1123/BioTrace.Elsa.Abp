@@ -1,0 +1,6 @@
+**/bin/**
+**/obj/**
+**/.vs/**
+**/node_modules/**
+host/**/Migrations/**/*.Designer.cs
+host/**/Migrations/**/*ModelSnapshot.cs

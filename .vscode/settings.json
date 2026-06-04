@@ -29,8 +29,11 @@
 
   // C# / OmniSharp：降低后台分析范围，减轻 UI 卡顿
   "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "openFiles",
+  "dotnet.backgroundAnalysis.workspaceDiagnosticsScope": "openFiles",
   "dotnet.symbolSearch.searchReferenceScope": "currentProject",
   "csharp.maxProjectFileCount": 100,
+  "omnisharp.enableRoslynAnalyzers": false,
+  "csharp.analysis.typeCheckingMode": "off",
 
   // 若通过 Remote-WSL 打开且仍遇监视丢失，可改为 true（略增 CPU，换更稳的轮询）
   "remote.WSL.fileWatcher.polling": false
