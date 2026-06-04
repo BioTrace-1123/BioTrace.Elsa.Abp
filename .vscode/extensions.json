@@ -1,5 +1,6 @@
 {
   "recommendations": [
+    "ms-vscode-remote.remote-wsl",
     "ms-dotnettools.csdevkit",
     "ms-dotnettools.csharp",
     "ms-azuretools.vscode-docker"

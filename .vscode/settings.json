@@ -1,0 +1,37 @@
+{
+  // Git：终端/CLI 提交后尽快刷新 Source Control（WSL 上 inotify 对 .git/index 不可靠时需配合窗口焦点刷新）
+  "git.autorefresh": true,
+  "git.refreshOnWindowFocus": true,
+  "git.autoRepositoryRefresh": true,
+  "git.autofetch": false,
+  "git.detectSubmodules": false,
+  "git.repositoryScanMaxDepth": 1,
+  "git.openRepositoryInParentFolders": "never",
+
+  // 减少无关目录的文件监视与索引负担（.NET 构建输出）
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/bin/**": true,
+    "**/obj/**": true,
+    "**/node_modules/**": true,
+    "**/.vs/**": true
+  },
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/node_modules": true
+  },
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  },
+
+  // C# / OmniSharp：降低后台分析范围，减轻 UI 卡顿
+  "dotnet.backgroundAnalysis.analyzerDiagnosticsScope": "openFiles",
+  "dotnet.symbolSearch.searchReferenceScope": "currentProject",
+  "csharp.maxProjectFileCount": 100,
+
+  // 若通过 Remote-WSL 打开且仍遇监视丢失，可改为 true（略增 CPU，换更稳的轮询）
+  "remote.WSL.fileWatcher.polling": false
+}
