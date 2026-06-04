@@ -3,24 +3,61 @@ using Elsa.EntityFrameworkCore.Modules.Management;
 using Elsa.EntityFrameworkCore.Modules.Runtime;
 using Elsa.Extensions;
 using Elsa.Features.Services;
+using Elsa.Http;
+using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Volo.Abp;
 using Volo.Abp.AspNetCore;
 using Volo.Abp.Modularity;
+using Volo.Abp.Security.Claims;
+using BioTrace.Elsa.Abp.Security;
 
 namespace BioTrace.Elsa.Abp;
 
 [DependsOn(
     typeof(AbpAspNetCoreModule),
-    typeof(AbpApplicationModule))]
+    typeof(AbpApplicationModule),
+    typeof(Volo.Abp.PermissionManagement.AbpPermissionManagementDomainModule))]
 public class ElsaAbpAspNetCoreModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
+        var hostEnvironment = context.Services.GetHostingEnvironment();
+
         Configure<ElsaAbpOptions>(options => configuration.GetSection("Elsa").Bind(options));
+
+        Configure<AbpClaimsPrincipalFactoryOptions>(options =>
+        {
+            options.Contributors.Add<ElsaAbpPermissionClaimsPrincipalContributor>();
+        });
+
+        context.Services.TryAddEnumerable(
+            ServiceDescriptor.Singleton<IAuthorizationHandler, AbpElsaNotReadOnlyAuthorizationHandler>());
+
         ConfigureElsa(context);
+
+        ConfigureElsaSecurity(context, hostEnvironment);
+    }
+
+    protected virtual void ConfigureElsaSecurity(ServiceConfigurationContext context, IHostEnvironment hostEnvironment)
+    {
+        var options = context.Services.ExecutePreConfiguredActions<ElsaAbpOptions>();
+
+        if (hostEnvironment.IsDevelopment() && options.DisableElsaEndpointSecurity)
+        {
+            TryDisableElsaEndpointSecurity();
+        }
+    }
+
+    protected virtual void TryDisableElsaEndpointSecurity()
+    {
+        var type = Type.GetType("Elsa.Api.Common.Options.EndpointSecurityOptions, Elsa.Api.Common");
+        type?.GetMethod("DisableSecurity", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)?.Invoke(null, null);
     }
 
     protected virtual void ConfigureElsa(ServiceConfigurationContext context)

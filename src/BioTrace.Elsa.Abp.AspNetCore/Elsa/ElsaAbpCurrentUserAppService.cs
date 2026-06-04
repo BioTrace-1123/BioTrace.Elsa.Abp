@@ -1,0 +1,30 @@
+using BioTrace.Elsa.Abp.Security;
+using Microsoft.AspNetCore.Authorization;
+using Volo.Abp.Application.Services;
+
+namespace BioTrace.Elsa.Abp.Elsa;
+
+[Authorize]
+public class ElsaAbpCurrentUserAppService : ApplicationService, IElsaAbpCurrentUserAppService
+{
+    private readonly IElsaAbpEffectivePermissionsProvider _effectivePermissionsProvider;
+
+    public ElsaAbpCurrentUserAppService(IElsaAbpEffectivePermissionsProvider effectivePermissionsProvider)
+    {
+        _effectivePermissionsProvider = effectivePermissionsProvider;
+    }
+
+    public virtual async Task<ElsaAbpCurrentUserDto> GetAsync()
+    {
+        var permissions = await _effectivePermissionsProvider.GetElsaPermissionsAsync();
+
+        return new ElsaAbpCurrentUserDto
+        {
+            UserId = CurrentUser.Id,
+            UserName = CurrentUser.UserName,
+            Email = CurrentUser.Email,
+            Roles = CurrentUser.Roles.ToList(),
+            Permissions = permissions.ToList()
+        };
+    }
+}
