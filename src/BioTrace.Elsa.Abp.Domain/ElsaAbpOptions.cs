@@ -9,4 +9,16 @@ public class ElsaAbpOptions
     public bool EnableWorkflowsApi { get; set; } = true;
 
     public bool EnableHttpActivities { get; set; } = true;
+
+    /// <summary>Maps ABP permissions to Elsa <c>permissions</c> claims on each request.</summary>
+    public bool EnablePermissionClaimsBridge { get; set; } = true;
+
+    /// <summary>Claim type used by FastEndpoints (default: permissions).</summary>
+    public string PermissionsClaimType { get; set; } = "permissions";
+
+    /// <summary>Role claim type for FastEndpoints (default: role).</summary>
+    public string RoleClaimType { get; set; } = "role";
+
+    /// <summary>Disables Elsa endpoint security (development only).</summary>
+    public bool DisableElsaEndpointSecurity { get; set; }
 }
