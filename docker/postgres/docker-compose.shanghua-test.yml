@@ -1,0 +1,54 @@
+# shanghua-test-docker 测试环境 PostgreSQL（BioTrace.Elsa.Abp）
+#
+# 与项目 appsettings / docker-compose 对齐：
+#   - 镜像 postgres:16-alpine
+#   - 库 BioTrace_Abp、BioTrace_Elsa（init 脚本自动创建）
+#   - 用户 postgres
+#
+# 宿主机端口 55432（避免占用默认 5432；与同机 mssql 51433 / redis 56379 规律一致）
+#
+# 启动（在仓库根目录或本目录）：
+#   cp docker/postgres/env.shanghua-test.example docker/postgres/.env.shanghua-test
+#   docker compose -f docker/postgres/docker-compose.shanghua-test.yml --env-file docker/postgres/.env.shanghua-test up -d
+#
+# 离线镜像（已 crane pull 时）：
+#   docker load -i postgres-16-alpine.tar
+#
+# 应用连接串示例（宿主机 / 其他容器访问）：
+#   Host=shanghua-test-docker;Port=55432;Database=BioTrace_Abp;Username=postgres;Password=<见 .env>
+#   Host=shanghua-test-docker;Port=55432;Database=BioTrace_Elsa;Username=postgres;Password=<见 .env>
+#
+# 若应用与 Postgres 在同一 compose 网络内，可用 Host=shanghua-test-docker;Port=5432（容器内端口）
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_shanghua_test
+    hostname: shanghua-test-docker
+    restart: unless-stopped
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ShangHua@TestPg2026
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_shanghua_test_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      shanghua_test:
+        aliases:
+          - shanghua-test-docker
+
+networks:
+  shanghua_test:
+    name: shanghua_test
+
+volumes:
+  postgres_shanghua_test_data:
