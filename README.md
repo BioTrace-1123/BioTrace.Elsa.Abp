@@ -60,6 +60,80 @@ test/
 
 未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured` 业务异常。
 
+## 安全集成（ABP OpenIddict ↔ Elsa 3.5.3）
+
+本模块**不启用** `Elsa.Identity`，由宿主 **OpenIddict** 签发单一 JWT，同时保护 ABP API 与 Elsa Workflows API（FastEndpoints 校验 Principal 上的 `permissions` Claim）。
+
+### 架构要点
+
+- **ABP 权限**（Permission Management）：`Abp.Elsa.*`，用于角色/用户授权与审计。
+- **Elsa 运行时权限**（API Claim）：`read:workflow-definitions` 等，由 `ElsaAbpPermissionClaimsPrincipalContributor` 在请求时从 ABP 权限映射注入。
+- **单一真相源**：`IElsaAbpEffectivePermissionsProvider` 供 Claims 桥接与 Studio 当前用户 API 共用。
+- **Studio 按钮权限**：勿仅解析 JWT；调用 `GET /api/abp/elsa/current-user`（别名 `GET /identity/users/me`）获取最新 `permissions` 数组。
+
+### Host 演示账户（开发种子）
+
+| 用户 | 密码 | 角色 | 说明 |
+|------|------|------|------|
+| `admin` | `1q2w3E*` | admin | `Abp.Elsa.Admin` → Elsa `*` |
+| `designer` | `1q2w3E*` | designer | 只读 Definitions + Instances |
+| `operator` | `1q2w3E*` | operator | 读定义/实例 + 执行/取消实例 |
+
+开发环境 Host 启动时会自动 **Migrate + Seed**（`ElsaAbpHostDatabaseMigrationHostedService`，仅 Development）。
+
+### OpenIddict / CORS / Elsa Studio
+
+`appsettings.json` 示例（端口与 `launchSettings.json` 一致）：
+
+```json
+{
+  "App": {
+    "CorsOrigins": ["https://localhost:44388", "https://localhost:5003"]
+  },
+  "AuthServer": {
+    "Authority": "https://localhost:44388",
+    "SwaggerClientId": "BioTrace_Elsa_Abp_Swagger"
+  },
+  "OpenIddict": {
+    "Applications": {
+      "ElsaStudio": {
+        "ClientId": "ElsaStudio",
+        "RootUrl": "https://localhost:5003",
+        "RedirectUris": [
+          "https://localhost:5003/authentication/login-callback"
+        ]
+      }
+    }
+  },
+  "Elsa": {
+    "EnablePermissionClaimsBridge": true,
+    "DisableElsaEndpointSecurity": false
+  }
+}
+```
+
+- CORS 必须**显式 Origin** + `AllowCredentials()`，禁止 `AllowAnyOrigin()` 与 OIDC 混用。
+- Swagger：OAuth2 Authorization Code，ClientId `BioTrace_Elsa_Abp_Swagger`，Scope `BioTrace_Elsa_Abp`。
+- Elsa Studio：`Backend.Url` 指向 Host（如 `https://localhost:44388`），Code Flow 客户端 `ElsaStudio`。
+- 生产环境勿设置 `Elsa:DisableElsaEndpointSecurity=true`。
+
+### ABP ↔ Elsa 权限对照（节选）
+
+| ABP 权限 | Elsa Claim |
+|----------|------------|
+| `Abp.Elsa.Admin` | `*` |
+| `Abp.Elsa.WorkflowDefinitions.Read` | `read:workflow-definitions` |
+| `Abp.Elsa.WorkflowDefinitions.Write` | `write:workflow-definitions` |
+| `Abp.Elsa.WorkflowDefinitions.Publish` | `publish:workflow-definitions` |
+| `Abp.Elsa.WorkflowInstances.Execute` | `execute:workflow-instances` |
+| `Abp.Elsa.NotReadOnly` | 满足 ASP.NET `NotReadOnlyPolicy`（非 Claim） |
+
+完整常量见 `AbpElsaPermissions` 与 `ElsaApiPermissionNames`（`Application.Contracts`）。
+
+### 宿主额外依赖（演示）
+
+除 `ElsaAbpAspNetCoreModule` 外，演示 Host 引用 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Abp` 库（与 Elsa 库仍分离）。
+
 ## 本地运行 Host（PostgreSQL）
 
 ```bash
