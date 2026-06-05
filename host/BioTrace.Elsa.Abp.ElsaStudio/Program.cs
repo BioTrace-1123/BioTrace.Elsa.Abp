@@ -1,4 +1,5 @@
 using BioTrace.Elsa.Abp.ElsaStudio.Components;
+using BioTrace.Elsa.Abp.ElsaStudio.Services;
 using Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.OpenIdConnect.HttpMessageHandlers;
 using Elsa.Studio.Contracts;
@@ -10,6 +11,7 @@ using Elsa.Studio.Localization.Models;
 using Elsa.Studio.Models;
 using Elsa.Studio.Shell;
 using Elsa.Studio.Shell.Extensions;
+using Elsa.Studio.Workflows.Contracts;
 using Elsa.Studio.Workflows.Designer.Extensions;
 using Elsa.Studio.Workflows.Extensions;
 using Microsoft.AspNetCore.Components.Web;
@@ -68,6 +70,25 @@ builder.Services.AddRemoteBackend(backendApiConfig);
 builder.Services.AddDashboardModule();
 builder.Services.AddWorkflowsModule();
 builder.Services.AddLocalizationModule(localizationConfig);
+
+ConfigureAbpStudioIntegration(builder.Services, configuration);
+
+static void ConfigureAbpStudioIntegration(IServiceCollection services, IConfiguration configuration)
+{
+    var authority = configuration["Authentication:OpenIdConnect:Authority"]?.TrimEnd('/');
+    if (string.IsNullOrWhiteSpace(authority))
+    {
+        throw new InvalidOperationException(
+            "Authentication:OpenIdConnect:Authority is required for ABP current-user permission checks.");
+    }
+
+    services.AddHttpClient<IElsaAbpStudioPermissionService, ElsaAbpStudioPermissionService>(client =>
+    {
+        client.BaseAddress = new Uri(authority + "/");
+    });
+
+    services.AddScoped<ICreateWorkflowDialogComponentProvider, AbpCreateWorkflowDialogComponentProvider>();
+}
 
 var app = builder.Build();
 
