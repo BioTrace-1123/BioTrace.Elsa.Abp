@@ -8,6 +8,9 @@ public class ElsaAbpOptions
 
     public bool EnableWorkflowsApi { get; set; } = true;
 
+    /// <summary>Enables a separate FastEndpoints OpenAPI document for Elsa Workflows API (disable in production).</summary>
+    public bool EnableElsaSwagger { get; set; }
+
     public bool EnableHttpActivities { get; set; } = true;
 
     /// <summary>Maps ABP permissions to Elsa <c>permissions</c> claims on each request.</summary>
