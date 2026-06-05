@@ -1,0 +1,88 @@
+name: NuGet Publish
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "要发布的版本号（例如 1.2.3）"
+        required: true
+        type: string
+      include_prerelease_suffix:
+        description: "是否自动附加预发布后缀（-preview.<run_number>）"
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  pack-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      NUGET_SOURCE: https://api.nuget.org/v3/index.json
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve package version
+        id: resolve_version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+
+          if [[ "${{ inputs.include_prerelease_suffix }}" == "true" ]]; then
+            VERSION="${VERSION}-preview.${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using package version: ${VERSION}"
+
+      - name: Restore
+        run: dotnet restore BioTrace.Elsa.Abp.slnx
+
+      - name: Build
+        run: dotnet build BioTrace.Elsa.Abp.slnx --configuration Release --no-restore
+
+      - name: Pack module projects
+        shell: bash
+        run: |
+          dotnet pack src/BioTrace.Elsa.Abp.Domain.Shared/BioTrace.Elsa.Abp.Domain.Shared.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Domain/BioTrace.Elsa.Abp.Domain.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Application.Contracts/BioTrace.Elsa.Abp.Application.Contracts.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Application/BioTrace.Elsa.Abp.Application.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.resolve_version.outputs.version }}
+          path: artifacts/nuget
+          if-no-files-found: error
+
+      - name: Push to NuGet
+        if: env.NUGET_API_KEY != ''
+        shell: bash
+        run: |
+          dotnet nuget push "artifacts/nuget/*.nupkg" \
+            --api-key "${NUGET_API_KEY}" \
+            --source "${NUGET_SOURCE}" \
+            --skip-duplicate
