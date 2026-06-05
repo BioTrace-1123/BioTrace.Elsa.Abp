@@ -26,8 +26,9 @@ alwaysApply: false
 
 ## 扩展点（可复用模块）
 
-- `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / `ConfigureElsaActivities` 为 **virtual**。
-- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableHttpActivities`）。
+- `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / `ConfigureElsaSwagger` / `ConfigureElsaActivities` 为 **virtual**。
+- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableElsaSwagger`、`EnableHttpActivities`）。
+- 双 Swagger：ABP `/swagger/v1/swagger.json`；Elsa `/swagger/elsa/openapi.json`（`EnableElsaSwagger`，避免与 Swashbuckle 路径冲突）。
 - 自定义 Activity 放在 Application 层，用 `AddActivitiesFrom<AbpApplicationModule>()` 注册。
 
 ## 宿主集成清单

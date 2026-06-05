@@ -50,6 +50,7 @@ test/
      "Elsa": {
        "RunMigrations": true,
        "EnableWorkflowsApi": true,
+       "EnableElsaSwagger": true,
        "EnableHttpActivities": true
      }
    }
@@ -106,6 +107,7 @@ test/
     }
   },
   "Elsa": {
+    "EnableElsaSwagger": true,
     "EnablePermissionClaimsBridge": true,
     "DisableElsaEndpointSecurity": false
   }
@@ -113,9 +115,30 @@ test/
 ```
 
 - CORS 必须**显式 Origin** + `AllowCredentials()`，禁止 `AllowAnyOrigin()` 与 OIDC 混用。
-- Swagger：OAuth2 Authorization Code，ClientId `BioTrace_Elsa_Abp_Swagger`，Scope `BioTrace_Elsa_Abp`。
-- Elsa Studio：`Backend.Url` 指向 Host（如 `https://localhost:44388`），Code Flow 客户端 `ElsaStudio`。
-- 生产环境勿设置 `Elsa:DisableElsaEndpointSecurity=true`。
+- **双 Swagger**（ABP Swashbuckle 与 Elsa FastEndpoints 分离，见下节）。
+- Elsa Studio（方案 A，另做）：`Backend.Url` 指向 Host（如 `https://localhost:44388`），Code Flow 客户端 `ElsaStudio`。
+- 生产环境勿设置 `Elsa:DisableElsaEndpointSecurity=true`；生产建议 `Elsa:EnableElsaSwagger=false`。
+
+### 双 Swagger（ABP API + Elsa Workflows API）
+
+| 文档 | OpenAPI JSON | UI |
+|------|----------------|-----|
+| BioTrace.Elsa.Abp API | `https://localhost:44388/swagger/v1/swagger.json` | `https://localhost:44388/swagger`（OAuth2） |
+| Elsa Workflows API | `https://localhost:44388/swagger/elsa/openapi.json` | `https://localhost:44388/swagger/elsa`，或在 ABP UI 下拉选择 **Elsa Workflows API** |
+
+- ABP 文档：OAuth2 Authorization Code，ClientId `BioTrace_Elsa_Abp_Swagger`，Scope `BioTrace_Elsa_Abp`。
+- Elsa 文档：由 `FastEndpoints.Swagger` 生成，需 **Bearer JWT**（不支持 ABP Swagger 的 OAuth 一键授权）。
+- 开关：`Elsa:EnableElsaSwagger`（与 `EnableWorkflowsApi` 联动；演示 Host 开发环境默认 `true`）。
+
+**在 Elsa Swagger 中调用 API（获取 Token）**
+
+1. 打开 `https://localhost:44388/swagger`，点击 **Authorize**，用 OAuth 登录（如 `admin` / `1q2w3E*`）。勿依赖 `/Account/Login`（演示 Host 未注册 Theme，会 500）。
+2. 亦可先 `POST /api/account/login` 再 Authorize，或对 `/connect/token` 使用已配置的客户端。
+3. 从 OAuth 对话框或浏览器网络面板复制 **access_token**。
+4. 打开 `https://localhost:44388/swagger/elsa`（或在 ABP Swagger 下拉切换到 Elsa 文档），在 **Bearer** 中填入：`Bearer {access_token}`。
+5. 试用 `GET /elsa/api/workflow-definitions`：`admin` 返回 200；`designer` 只读 200；无写权限的变更操作返回 403。
+
+Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 注入的 **`permissions` Claim**（如 `read:workflow-definitions`），不是 ABP 权限名字符串。ABP Swagger 的 `GET /api/abp/elsa/current-user` 仍用于查看当前用户的 Elsa 权限列表。
 
 ### ABP ↔ Elsa 权限对照（节选）
 
@@ -141,8 +164,9 @@ docker compose up -d
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 ```
 
-- API / Swagger：`https://localhost:44388`
-- Elsa Workflows API：由 `UseWorkflowsApi` 暴露（路径以 Elsa 默认为准）
+- ABP Swagger：`https://localhost:44388/swagger`
+- Elsa Swagger：`https://localhost:44388/swagger/elsa`
+- Elsa Workflows API：`https://localhost:44388/elsa/api/*`（如 `workflow-definitions`）
 - `docker/postgres/init` 会创建 `BioTrace_Abp` 与 `BioTrace_Elsa` 两个库
 
 ## 使用 Dev Container（推荐）
@@ -206,8 +230,26 @@ sudo sysctl -p
 ```bash
 dotnet restore BioTrace.Elsa.Abp.slnx
 dotnet build BioTrace.Elsa.Abp.slnx
-dotnet test BioTrace.Elsa.Abp.slnx
+
+# 单元测试（默认，不依赖 PostgreSQL）
+dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
+
+# Host 集成测（Contributor + OpenIddict + Elsa API，需 PostgreSQL）
+docker compose up -d
+dotnet test BioTrace.Elsa.Abp.slnx --filter "Category=Integration"
 ```
+
+### Host 集成测
+
+项目 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 通过 `WebApplicationFactory` + **Password Grant 测试客户端**（仅测试配置启用）验证：
+
+- OpenIddict 真实 `/connect/token` 签发与验签
+- JWT **不含** `permissions`，但 `GET /identity/users/me` 与 Elsa API 能读到桥接后的权限
+- Elsa API：`401`（无 Token）、`200`（admin 读）、`403`（designer 写）
+
+**前置**：`docker compose up -d`；使用独立测试库 `BioTrace_Abp_Test`、`BioTrace_Elsa_Test`（见 [`docker/postgres/init/01-create-databases.sql`](docker/postgres/init/01-create-databases.sql)）。若 Postgres 未就绪，集成测会失败并提示先启动 Compose。
+
+演示 Host 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
 
 在宿主应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「宿主集成清单」）。
 
