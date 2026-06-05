@@ -37,9 +37,18 @@
       "args": [
         "test",
         "${workspaceFolder}/BioTrace.Elsa.Abp.slnx",
+        "--filter",
+        "Category!=Integration",
         "/property:GenerateFullPaths=true",
         "/consoleloggerparameters:NoSummary;ForceNoAlign"
       ],
+      "group": "test",
+      "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test-integration",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/test-integration.sh",
       "group": "test",
       "problemMatcher": "$msCompile"
     }

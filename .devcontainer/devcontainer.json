@@ -19,6 +19,7 @@
   },
   "remoteEnv": {
     "ASPNETCORE_ENVIRONMENT": "Development",
+    "INTEGRATION_TEST_POSTGRES_HOST": "postgres",
     "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
     "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres",
     "HTTP_PROXY": "http://host.docker.internal:7890",
