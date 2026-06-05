@@ -31,4 +31,7 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
 USER $USERNAME
+RUN dotnet tool install -g git-credential-manager --version 2.8.0
+ENV PATH="/home/vscode/.dotnet/tools:${PATH}"
+
 WORKDIR /workspaces/BioTrace.Elsa.Abp

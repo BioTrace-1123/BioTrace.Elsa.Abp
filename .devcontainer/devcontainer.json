@@ -9,13 +9,20 @@
     "44388": { "label": "HttpApi.Host HTTPS", "onAutoForward": "notify" },
     "44389": { "label": "HttpApi.Host HTTP" }
   },
+  "mounts": [
+    "source=${localEnv:HOME}/.gcm,target=/home/vscode/.gcm,type=bind,consistency=cached",
+    "source=${localEnv:SSH_AUTH_SOCK},target=/tmp/ssh-agent.sock,type=bind,consistency=consistent"
+  ],
   "remoteEnv": {
     "ASPNETCORE_ENVIRONMENT": "Development",
     "INTEGRATION_TEST_POSTGRES_HOST": "postgres",
     "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
-    "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres"
+    "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres",
+    "PATH": "/home/vscode/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
   },
-  "postCreateCommand": "dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx",
+  "postCreateCommand": "bash .devcontainer/setup-git.sh && dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx",
+  "postStartCommand": "bash .devcontainer/setup-git.sh",
   "customizations": {
     "vscode": {
       "extensions": [
