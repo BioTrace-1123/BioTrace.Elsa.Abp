@@ -1,3 +1,4 @@
+using BioTrace.Elsa.Abp.ElsaStudio.Components;
 using Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.OpenIdConnect.HttpMessageHandlers;
 using Elsa.Studio.Contracts;
@@ -12,6 +13,7 @@ using Elsa.Studio.Shell.Extensions;
 using Elsa.Studio.Workflows.Designer.Extensions;
 using Elsa.Studio.Workflows.Extensions;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -19,12 +21,34 @@ var configuration = builder.Configuration;
 
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
+builder.RootComponents.Add<UserMenuAppBarRegistration>("body::after");
 builder.RootComponents.RegisterCustomElsaStudioElements();
+
+var authProvider = configuration["Authentication:Provider"];
+if (string.IsNullOrWhiteSpace(authProvider))
+{
+    authProvider = "OpenIdConnect";
+}
+
+if (!authProvider.Equals("OpenIdConnect", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        $"Unsupported Authentication:Provider value '{authProvider}'. Supported value is 'OpenIdConnect'.");
+}
 
 builder.Services.AddOpenIdConnectAuth(options =>
 {
     configuration.GetSection("Authentication:OpenIdConnect").Bind(options);
 });
+
+builder.Services.AddOptions<RemoteAuthenticationOptions<OidcProviderOptions>>()
+    .Configure(options =>
+    {
+        options.UserOptions.NameClaim =
+            configuration["Authentication:OpenIdConnect:NameClaimType"] ?? "preferred_username";
+        options.UserOptions.RoleClaim =
+            configuration["Authentication:OpenIdConnect:RoleClaimType"] ?? "role";
+    });
 
 var backendApiConfig = new BackendApiConfig
 {

@@ -1,0 +1,39 @@
+@using BioTrace.Elsa.Abp.ElsaStudio.Components
+@using global::Elsa.Studio.Contracts
+@using Microsoft.AspNetCore.Components.Authorization
+@implements IDisposable
+@inject IAppBarService AppBarService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+@code {
+    private bool _registered;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await TryRegisterAsync();
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+    }
+
+    public void Dispose()
+    {
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> stateTask)
+    {
+        await TryRegisterAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task TryRegisterAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated != true || _registered)
+        {
+            return;
+        }
+
+        AppBarService.AddComponent<UserMenu>(30);
+        _registered = true;
+    }
+}
