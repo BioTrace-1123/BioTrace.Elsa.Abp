@@ -33,6 +33,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "anysphere.csharp",
         "ms-dotnettools.csdevkit",
         "ms-dotnettools.csharp",
         "ms-azuretools.vscode-docker"
