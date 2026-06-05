@@ -2,6 +2,14 @@
 
 基于 [ABP Framework](https://abp.io/) 的可复用 **Application Module**，用于在宿主应用中集成 BioTrace / Elsa 相关能力。
 
+## 文档
+
+| 文档 | 说明 |
+|---|---|
+| [消费方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
+| [消费方配置示例](docs/appsettings.consumer.example.json) | 宿主 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
+| [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
+
 ## 技术栈
 
 - .NET 10
@@ -38,6 +46,8 @@ test/
 ```
 
 ## 宿主集成清单
+
+> 从 NuGet 引用时的逐步教程见 **[消费方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。
 
 引用本模块的 ABP 应用**必须**单独配置 Elsa 数据库；仅引用 NuGet/项目**不会**自动创建 Elsa 表。
 
@@ -357,6 +367,55 @@ git push -u origin develop
 
 PR 合并前两个 job 均须通过。
 
+## NuGet 发布准备
+
+仓库已提供统一打包元数据（见 `common.props`）与发布工作流 [`.github/workflows/nuget-publish.yml`](.github/workflows/nuget-publish.yml)，用于将模块各层按同版本发布到 NuGet.org。
+
+消费方如何安装包、配置数据库与权限，见 **[消费方集成指南](docs/nuget-consumer-guide.md)**。
+
+### 将会发布的包
+
+| 项目 | 包名 |
+|---|---|
+| `BioTrace.Elsa.Abp.Domain.Shared` | `BioTrace.Elsa.Abp.Domain.Shared` |
+| `BioTrace.Elsa.Abp.Domain` | `BioTrace.Elsa.Abp.Domain` |
+| `BioTrace.Elsa.Abp.Application.Contracts` | `BioTrace.Elsa.Abp.Application.Contracts` |
+| `BioTrace.Elsa.Abp.Application` | `BioTrace.Elsa.Abp.Application` |
+| `BioTrace.Elsa.Abp.HttpApi` | `BioTrace.Elsa.Abp.HttpApi` |
+| `BioTrace.Elsa.Abp.HttpApi.Client` | `BioTrace.Elsa.Abp.HttpApi.Client` |
+| `BioTrace.Elsa.Abp.EntityFrameworkCore` | `BioTrace.Elsa.Abp.EntityFrameworkCore` |
+| `BioTrace.Elsa.Abp.AspNetCore` | `BioTrace.Elsa.Abp.AspNetCore` |
+| `BioTrace.Elsa.Abp.Installer` | `BioTrace.Elsa.Abp.Installer` |
+
+### 发布前检查清单
+
+1. 版本号对齐：更新 `common.props` 的 `<Version>`（或发布时由 workflow 输入/Tag 覆盖）。
+2. 通过 CI：确保编译、单元测、集成测全部通过。
+3. README 完整：确认模块集成方式、连接串、权限说明与版本策略无误。
+4. 仓库 Secret：在 GitHub 仓库设置 `NUGET_API_KEY`（NuGet.org API Key）。
+5. （建议）许可证：发布公开包前补充 `LICENSE` 并在项目中声明 License 元数据。
+
+### 本地打包验证
+
+```bash
+dotnet restore BioTrace.Elsa.Abp.slnx
+dotnet build BioTrace.Elsa.Abp.slnx -c Release
+
+dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj \
+  -c Release --no-build -o ./artifacts/nuget
+```
+
+需要一次性打全部包时，可按 `nuget-publish.yml` 中 `Pack module projects` 的列表逐个执行 `dotnet pack`。
+
+### GitHub Actions 发布方式
+
+支持两种触发方式：
+
+- **手工触发**：`Actions -> NuGet Publish -> Run workflow`，输入版本号（如 `1.2.3`）。
+- **Tag 触发**：推送 `v*.*.*`（如 `v1.2.3`）后自动发布。
+
+工作流会先产出 `artifacts/nuget` 并上传构建产物，再在 `NUGET_API_KEY` 存在时执行 `dotnet nuget push --skip-duplicate`。
+
 ## 许可证
 
-尚未指定许可证。若计划开源，请在仓库根目录添加 `LICENSE` 并更新本节。
+尚未指定许可证。若计划开源并发布公开 NuGet 包，请在仓库根目录添加 `LICENSE`，并在项目打包元数据中声明对应许可证信息。
