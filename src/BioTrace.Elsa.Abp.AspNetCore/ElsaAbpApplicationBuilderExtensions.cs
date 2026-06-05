@@ -23,6 +23,12 @@ public static class ElsaAbpApplicationBuilderExtensions
         fastEndpointsConfig.Security.RoleClaimType = options.RoleClaimType;
 
         app.UseWorkflowsApi();
+
+        if (options.EnableElsaSwagger)
+        {
+            app.UseElsaSwagger();
+        }
+
         return app;
     }
 }

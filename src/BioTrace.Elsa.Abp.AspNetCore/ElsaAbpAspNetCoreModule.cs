@@ -63,12 +63,16 @@ public class ElsaAbpAspNetCoreModule : AbpModule
     protected virtual void ConfigureElsa(ServiceConfigurationContext context)
     {
         var configuration = context.Services.GetConfiguration();
+        var hostEnvironment = context.Services.GetHostingEnvironment();
         var options = context.Services.ExecutePreConfiguredActions<ElsaAbpOptions>();
         var connectionString = GetElsaConnectionString(configuration, options);
+        var enableElsaSwagger = configuration.GetValue(
+            "Elsa:EnableElsaSwagger",
+            hostEnvironment.IsDevelopment());
 
         context.Services.AddElsa(elsa =>
         {
-            ConfigureElsaCore(elsa, connectionString, options);
+            ConfigureElsaCore(elsa, connectionString, options, enableElsaSwagger);
             ConfigureElsaActivities(elsa);
         });
     }
@@ -76,7 +80,8 @@ public class ElsaAbpAspNetCoreModule : AbpModule
     protected virtual void ConfigureElsaCore(
         IModule elsa,
         string connectionString,
-        ElsaAbpOptions options)
+        ElsaAbpOptions options,
+        bool enableElsaSwagger)
     {
         elsa.UseWorkflowManagement(management =>
         {
@@ -99,12 +104,22 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         if (options.EnableWorkflowsApi)
         {
             elsa.UseWorkflowsApi();
+
+            if (enableElsaSwagger)
+            {
+                ConfigureElsaSwagger(elsa, options);
+            }
         }
 
         if (options.EnableHttpActivities)
         {
             elsa.UseHttp();
         }
+    }
+
+    protected virtual void ConfigureElsaSwagger(IModule elsa, ElsaAbpOptions options)
+    {
+        elsa.ConfigureElsaSwagger(options);
     }
 
     protected virtual void ConfigureElsaActivities(IModule elsa)
