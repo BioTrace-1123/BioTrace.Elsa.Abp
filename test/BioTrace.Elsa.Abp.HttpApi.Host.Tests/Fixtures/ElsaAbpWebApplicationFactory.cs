@@ -1,7 +1,9 @@
 using BioTrace.Elsa.Abp.Helpers;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace BioTrace.Elsa.Abp.Fixtures;
@@ -41,10 +43,14 @@ public class ElsaAbpWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseEnvironment(Environments.Development);
         builder.UseSetting(WebHostDefaults.ServerUrlsKey, BaseUrl);
 
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<IStartupFilter, IntegrationTestHttpsStartupFilter>();
+        });
+
         builder.ConfigureAppConfiguration((_, configurationBuilder) =>
         {
-            var postgresBase =
-                "Host=localhost;Port=5432;Username=postgres;Password=postgres";
+            var postgresBase = IntegrationTestPostgresSettings.GetConnectionBase();
 
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -72,5 +78,6 @@ public class ElsaAbpWebApplicationFactory : WebApplicationFactory<Program>
     {
         client.BaseAddress = new Uri(BaseUrl);
         client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("X-Forwarded-Proto", "https");
     }
 }

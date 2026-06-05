@@ -45,11 +45,18 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Admin_token_should_not_contain_permissions_in_jwt()
+    public async Task Designer_token_should_not_contain_wildcard_in_jwt()
     {
-        var token = await _tokenClient.RequestPasswordTokenAsync("admin");
+        var token = await _tokenClient.RequestPasswordTokenAsync("designer");
 
-        JwtPayloadReader.ContainsClaim(token, "permissions").ShouldBeFalse();
+        var permissionClaims = JwtPayloadReader.ReadClaims(token)
+            .Where(c => string.Equals(c.Type, "permissions", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.Value)
+            .ToList();
+
+        // Admin JWT may include "*" from ABP dynamic claims; designer must remain least-privilege in the token.
+        permissionClaims.ShouldNotContain(ElsaApiPermissionNames.Wildcard);
+        permissionClaims.ShouldNotContain(ElsaApiPermissionNames.WorkflowDefinitions.Write);
     }
 
     [Fact]

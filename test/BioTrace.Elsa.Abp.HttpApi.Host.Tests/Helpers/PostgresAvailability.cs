@@ -4,16 +4,13 @@ namespace BioTrace.Elsa.Abp.Helpers;
 
 public static class PostgresAvailability
 {
-    public const string SkipReason = "PostgreSQL is not available. Run `docker compose up -d` and ensure BioTrace_Abp_Test / BioTrace_Elsa_Test exist.";
-
-    private const string AdminConnectionString =
-        "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres";
+    public static string SkipReason => IntegrationTestPostgresSettings.GetSkipReason();
 
     public static async Task<bool> IsAvailableAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            await using var connection = new NpgsqlConnection(AdminConnectionString);
+            await using var connection = new NpgsqlConnection(IntegrationTestPostgresSettings.GetAdminConnectionString());
             await connection.OpenAsync(cancellationToken);
             return true;
         }
@@ -25,7 +22,7 @@ public static class PostgresAvailability
 
     public static async Task EnsureTestDatabasesAsync(CancellationToken cancellationToken = default)
     {
-        await using var connection = new NpgsqlConnection(AdminConnectionString);
+        await using var connection = new NpgsqlConnection(IntegrationTestPostgresSettings.GetAdminConnectionString());
         await connection.OpenAsync(cancellationToken);
 
         await EnsureDatabaseAsync(connection, "BioTrace_Abp_Test", cancellationToken);
