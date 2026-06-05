@@ -27,6 +27,7 @@ src/
   BioTrace.Elsa.Abp.Installer
 host/
   BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主
+  BioTrace.Elsa.Abp.ElsaStudio           # Elsa Studio Blazor WASM（OpenIddict）
 test/
   BioTrace.Elsa.Abp.TestBase
   BioTrace.Elsa.Abp.AspNetCore.Tests
@@ -120,7 +121,7 @@ test/
 
 - CORS 必须**显式 Origin** + `AllowCredentials()`，禁止 `AllowAnyOrigin()` 与 OIDC 混用。
 - **双 Swagger**（ABP Swashbuckle 与 Elsa FastEndpoints 分离，见下节）。
-- Elsa Studio（方案 A，另做）：`Backend.Url` 指向 Host（如 `https://localhost:44388`），Code Flow 客户端 `ElsaStudio`。
+- Elsa Studio WASM 见下文「运行 Elsa Studio」；`Backend.Url` 指向 Host（`https://localhost:44388/elsa/api`），Code Flow 客户端 `ElsaStudio`。
 - 生产环境勿设置 `Elsa:DisableElsaEndpointSecurity=true`；生产建议 `Elsa:EnableElsaSwagger=false`。
 
 ### 双 Swagger（ABP API + Elsa Workflows API）
@@ -172,6 +173,29 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 - Elsa Swagger：`https://localhost:44388/swagger/elsa`
 - Elsa Workflows API：`https://localhost:44388/elsa/api/*`（如 `workflow-definitions`）
 - `docker/postgres/init` 会创建 `BioTrace_Abp`、`BioTrace_Elsa`、`BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 四个库
+
+## 运行 Elsa Studio
+
+演示宿主已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 为独立 Blazor WASM 项目，通过 OpenId Connect 向 Host 换 Token，再调用 Elsa Workflows API。
+
+> **版本说明**：Elsa Server 锁定 **3.5.3**；`Elsa.Studio.*` 前端使用 **3.7.0**（OpenIdConnect WASM 包自 3.7 起发布）。Api.Client 与 3.5.3 后端在演示环境中兼容。
+
+**前置**：PostgreSQL 与 HttpApi.Host 已启动（见上一节）。
+
+```bash
+# 终端 1：Host（若未运行）
+dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
+
+# 终端 2：Studio
+dotnet run --project host/BioTrace.Elsa.Abp.ElsaStudio --urls "https://localhost:5003;http://localhost:5004"
+```
+
+- Studio UI：`https://localhost:5003`
+- 配置：`host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot/appsettings.json`（`Backend.Url`、`Authentication:OpenIdConnect`）
+- 登录：OIDC 跳转至 Host；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
+- VS Code / Cursor：**F5** 选择 **Host + Elsa Studio** 复合启动，或分别启动 **Launch HttpApi.Host (HTTPS)** 与 **Launch Elsa Studio (HTTPS)**
+
+CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://localhost:5003`。
 
 ## 使用 Dev Container（推荐）
 
