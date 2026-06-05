@@ -22,7 +22,7 @@ RUN if ! getent group "${USERNAME}" >/dev/null; then \
         fi; \
     fi
 
-# Docker Desktop / daemon proxy can break apt during image build; runtime proxy stays in devcontainer.json.
+# Docker Desktop / daemon proxy can break apt during image build.
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client \

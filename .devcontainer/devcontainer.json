@@ -9,25 +9,11 @@
     "44388": { "label": "HttpApi.Host HTTPS", "onAutoForward": "notify" },
     "44389": { "label": "HttpApi.Host HTTP" }
   },
-  "containerEnv": {
-    "HTTP_PROXY": "http://host.docker.internal:7890",
-    "HTTPS_PROXY": "http://host.docker.internal:7890",
-    "http_proxy": "http://host.docker.internal:7890",
-    "https_proxy": "http://host.docker.internal:7890",
-    "NO_PROXY": "localhost,127.0.0.1,postgres,host.docker.internal",
-    "no_proxy": "localhost,127.0.0.1,postgres,host.docker.internal"
-  },
   "remoteEnv": {
     "ASPNETCORE_ENVIRONMENT": "Development",
     "INTEGRATION_TEST_POSTGRES_HOST": "postgres",
     "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
-    "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres",
-    "HTTP_PROXY": "http://host.docker.internal:7890",
-    "HTTPS_PROXY": "http://host.docker.internal:7890",
-    "http_proxy": "http://host.docker.internal:7890",
-    "https_proxy": "http://host.docker.internal:7890",
-    "NO_PROXY": "localhost,127.0.0.1,postgres,host.docker.internal",
-    "no_proxy": "localhost,127.0.0.1,postgres,host.docker.internal"
+    "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres"
   },
   "postCreateCommand": "dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx",
   "customizations": {
