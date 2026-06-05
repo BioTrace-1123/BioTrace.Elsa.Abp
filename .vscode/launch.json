@@ -26,9 +26,29 @@
       }
     },
     {
+      "name": "Launch Elsa Studio (HTTPS)",
+      "type": "blazorwasm",
+      "request": "launch",
+      "preLaunchTask": "build-elsa-studio",
+      "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio",
+      "browser": "edge",
+      "url": "https://localhost:5003",
+      "webRoot": "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot"
+    },
+    {
       "name": "Attach to Process",
       "type": "coreclr",
       "request": "attach"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Host + Elsa Studio",
+      "configurations": [
+        "Launch HttpApi.Host (HTTPS)",
+        "Launch Elsa Studio (HTTPS)"
+      ],
+      "stopAll": true
     }
   ]
 }
