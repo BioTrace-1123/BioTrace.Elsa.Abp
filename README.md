@@ -29,7 +29,11 @@ host/
   BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主
 test/
   BioTrace.Elsa.Abp.TestBase
-  BioTrace.Elsa.Abp.*.Tests
+  BioTrace.Elsa.Abp.AspNetCore.Tests
+  BioTrace.Elsa.Abp.Application.Tests
+  BioTrace.Elsa.Abp.Domain.Tests
+  BioTrace.Elsa.Abp.EntityFrameworkCore.Tests
+  BioTrace.Elsa.Abp.HttpApi.Host.Tests   # Host 集成测（Contributor + OpenIddict + Elsa API）
 ```
 
 ## 宿主集成清单
@@ -167,7 +171,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 - ABP Swagger：`https://localhost:44388/swagger`
 - Elsa Swagger：`https://localhost:44388/swagger/elsa`
 - Elsa Workflows API：`https://localhost:44388/elsa/api/*`（如 `workflow-definitions`）
-- `docker/postgres/init` 会创建 `BioTrace_Abp` 与 `BioTrace_Elsa` 两个库
+- `docker/postgres/init` 会创建 `BioTrace_Abp`、`BioTrace_Elsa`、`BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 四个库
 
 ## 使用 Dev Container（推荐）
 
@@ -181,7 +185,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
 5. 浏览器访问 `https://localhost:44388`（Swagger）。
 
-容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Abp` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。
+容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Abp` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
 
 **常见问题**
 
@@ -233,21 +237,50 @@ dotnet build BioTrace.Elsa.Abp.slnx
 
 # 单元测试（默认，不依赖 PostgreSQL）
 dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
-
-# Host 集成测（Contributor + OpenIddict + Elsa API，需 PostgreSQL）
-docker compose up -d
-dotnet test BioTrace.Elsa.Abp.slnx --filter "Category=Integration"
 ```
+
+### 测试分层
+
+| 层级 | 项目 | 依赖 | 命令 |
+|------|------|------|------|
+| 单元测 | `BioTrace.Elsa.Abp.*.Tests`（含 Mapper/Provider/Contributor） | 无 Postgres | `dotnet test --filter "Category!=Integration"` |
+| Contributor 快测 | [`AspNetCore.Tests`](test/BioTrace.Elsa.Abp.AspNetCore.Tests/) | 无 Postgres | 同上（`ElsaAbpPermissionClaimsPrincipalContributor_Tests`） |
+| Host 集成测 | [`HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) | Postgres | [`./scripts/test-integration.sh`](scripts/test-integration.sh) |
 
 ### Host 集成测
 
-项目 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 通过 `WebApplicationFactory` + **Password Grant 测试客户端**（仅测试配置启用）验证：
+项目 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 通过 `WebApplicationFactory` + **Password Grant 测试客户端**（仅测试配置启用）验证 Contributor 桥接、OpenIddict 验签与 Elsa API 鉴权。
 
-- OpenIddict 真实 `/connect/token` 签发与验签
-- JWT **不含** `permissions`，但 `GET /identity/users/me` 与 Elsa API 能读到桥接后的权限
-- Elsa API：`401`（无 Token）、`200`（admin 读）、`403`（designer 写）
+**测试客户端**（仅 WAF 注入，不在演示 `appsettings.json` 中）：
 
-**前置**：`docker compose up -d`；使用独立测试库 `BioTrace_Abp_Test`、`BioTrace_Elsa_Test`（见 [`docker/postgres/init/01-create-databases.sql`](docker/postgres/init/01-create-databases.sql)）。若 Postgres 未就绪，集成测会失败并提示先启动 Compose。
+| 项 | 值 |
+|----|-----|
+| ClientId | `BioTrace_Elsa_Abp_IntegrationTests` |
+| ClientSecret | `integration-test-secret` |
+| 开关 | `AuthServer:AllowPasswordGrantForIntegrationTests=true` |
+
+**用例矩阵（T0–T5）**
+
+| # | 场景 | 断言 |
+|---|------|------|
+| T0 | 无 Bearer Token | `GET /elsa/api/workflow-definitions` → 401 |
+| T1 | designer Password Grant Token | JWT `permissions` **无** `*` / `write:*`（只读用户 token 保持最小权限） |
+| T2 | admin Password Grant Token | `GET /identity/users/me` → 200，`permissions` 含 `*` |
+| T3 | admin Password Grant Token | `GET /elsa/api/workflow-definitions` → 200 |
+| T4 | designer Token | `current-user` 仅 read claims |
+| T5 | designer Token | `POST /elsa/api/workflow-definitions` → 403 |
+
+**三种运行场景**
+
+| 场景 | Postgres 主机 | 前置 | 命令 |
+|------|---------------|------|------|
+| 宿主机 | `localhost`（默认） | `docker compose up -d` | `./scripts/test-integration.sh` |
+| Dev Container | `postgres`（`INTEGRATION_TEST_POSTGRES_HOST` 已配置） | Compose `postgres` 服务健康即可 | `./scripts/test-integration.sh` |
+| CI | `localhost`（GHA service） | 自动 | `integration-tests` job |
+
+连接串主机可通过环境变量 `INTEGRATION_TEST_POSTGRES_HOST` 覆盖（默认 `localhost`）。测试库 `BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 在 Postgres 可达时由测试 fixture 自动创建（亦见 [`docker/postgres/init/01-create-databases.sql`](docker/postgres/init/01-create-databases.sql)）。
+
+VS Code / Cursor 任务：**test-solution**（单元测）、**test-integration**（集成测）。
 
 演示 Host 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
 
@@ -289,7 +322,14 @@ git push -u origin develop
 
 ## CI
 
-向 `main` / `develop` 的 PR，以及对 `main`、`develop`、`feature/*`、`release/*`、`hotfix/*` 的推送会触发 [GitHub Actions](.github/workflows/ci.yml)。
+向 `main` / `develop` 的 PR，以及对 `main`、`develop`、`feature/*`、`release/*`、`hotfix/*` 的推送会触发 [GitHub Actions](.github/workflows/ci.yml)：
+
+| Job | 内容 |
+|-----|------|
+| `build-and-test` | 编译 + **单元测**（`Category!=Integration`，不依赖 Postgres） |
+| `integration-tests` | **Host 集成测**（GHA `postgres:15-alpine` service，T0–T5） |
+
+PR 合并前两个 job 均须通过。
 
 ## 许可证
 

@@ -75,10 +75,13 @@ chore: bump Volo.Abp to 10.4.1
 
 ```bash
 dotnet build BioTrace.Elsa.Abp.slnx
-dotnet test BioTrace.Elsa.Abp.slnx
+dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
+
+# 可选（需 PostgreSQL；Dev Container 内可直接运行）
+./scripts/test-integration.sh
 ```
 
-CI 会在 PR 与相关分支推送时自动运行（见 `.github/workflows/ci.yml`）。
+CI 会在 PR 与相关分支推送时自动运行（见 `.github/workflows/ci.yml`）：`build-and-test`（单元测）与 `integration-tests`（Host 集成测）并行执行。
 
 ## GitHub 仓库建议设置
 
