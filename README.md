@@ -137,7 +137,7 @@ test/
 
 **在 Elsa Swagger 中调用 API（获取 Token）**
 
-1. 打开 `https://localhost:44388/swagger`，点击 **Authorize**，用 OAuth 登录（如 `admin` / `1q2w3E*`）。勿依赖 `/Account/Login`（演示 Host 未注册 Theme，会 500）。
+1. 打开 `https://localhost:44388/swagger`，点击 **Authorize**，用 OAuth 登录（如 `admin` / `1q2w3E*`）；亦可直接访问 `https://localhost:44388/Account/Login`（Basic Theme 登录页）。
 2. 亦可先 `POST /api/account/login` 再 Authorize，或对 `/connect/token` 使用已配置的客户端。
 3. 从 OAuth 对话框或浏览器网络面板复制 **access_token**。
 4. 打开 `https://localhost:44388/swagger/elsa`（或在 ABP Swagger 下拉切换到 Elsa 文档），在 **Bearer** 中填入：`Bearer {access_token}`。
@@ -166,6 +166,8 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 
 ```bash
 docker compose up -d
+# 首次或更新 Basic Theme 依赖后：安装 Host 前端库（登录页 /Account/Login 需要）
+cd host/BioTrace.Elsa.Abp.HttpApi.Host && npm install && cd ../..
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 ```
 
@@ -192,7 +194,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.ElsaStudio --urls "https://localhost
 
 - Studio UI：`https://localhost:5003`
 - 配置：`host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot/appsettings.json`（`Backend.Url`、`Authentication:OpenIdConnect`）
-- 登录：OIDC 跳转至 Host；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
+- 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
 - VS Code / Cursor：**F5** 选择 **Host + Elsa Studio** 复合启动，或分别启动 **Launch HttpApi.Host (HTTPS)** 与 **Launch Elsa Studio (HTTPS)**
 
 CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://localhost:5003`。
