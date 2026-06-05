@@ -26,5 +26,6 @@
 
     <Folder Name="/host/">
         <Project Path="host/BioTrace.Elsa.Abp.HttpApi.Host/BioTrace.Elsa.Abp.HttpApi.Host.csproj" />
+        <Project Path="host/BioTrace.Elsa.Abp.ElsaStudio/BioTrace.Elsa.Abp.ElsaStudio.csproj" />
     </Folder>
 </Solution>
