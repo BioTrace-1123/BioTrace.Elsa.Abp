@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "name": "biotrace-elsa-abp-host",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/copy-client-libs.mjs"
+  },
+  "dependencies": {
+    "@abp/aspnetcore.mvc.ui.theme.basic": "~10.4.0"
+  }
+}

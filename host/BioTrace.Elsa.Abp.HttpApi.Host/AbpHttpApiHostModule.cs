@@ -1,6 +1,7 @@
 using BioTrace.Elsa.Abp.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Volo.Abp.AspNetCore;
 using Volo.Abp.Data;
@@ -17,6 +18,9 @@ using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
+using Volo.Abp.AspNetCore.Mvc.UI.Theme.Basic;
+using Volo.Abp.AspNetCore.Mvc.UI.Theme.Basic.Bundling;
 using Volo.Abp.AspNetCore.Serilog;
 using Volo.Abp.Autofac;
 using Volo.Abp.EntityFrameworkCore;
@@ -30,6 +34,7 @@ using Volo.Abp.PermissionManagement;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.Timing;
+using Volo.Abp.UI.Navigation.Urls;
 
 namespace BioTrace.Elsa.Abp;
 
@@ -44,6 +49,7 @@ namespace BioTrace.Elsa.Abp;
     typeof(AbpAutofacModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule),
+    typeof(AbpAspNetCoreMvcUiBasicThemeModule),
     typeof(AbpAccountWebOpenIddictModule),
     typeof(AbpAccountApplicationModule),
     typeof(AbpIdentityApplicationModule),
@@ -134,6 +140,8 @@ public class AbpHttpApiHostModule : AbpModule
         ConfigureElsaHost(context, configuration);
 
         ConfigureAuthentication(context);
+        ConfigureBundles();
+        ConfigureUrls(configuration);
         ConfigureCors(context, configuration);
         ConfigureSwagger(context, configuration);
         Configure<AbpClaimsPrincipalFactoryOptions>(options =>
@@ -144,10 +152,70 @@ public class AbpHttpApiHostModule : AbpModule
 
     protected virtual void ConfigureAuthentication(ServiceConfigurationContext context)
     {
-        context.Services.Configure<AuthenticationOptions>(options =>
+        context.Services.ForwardIdentityAuthenticationForBearer(
+            OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+
+        context.Services.ConfigureApplicationCookie(options =>
         {
-            options.DefaultAuthenticateScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme;
+            options.Events.OnRedirectToLogin = redirectContext =>
+            {
+                if (ShouldReturn401ForChallenge(redirectContext.Request))
+                {
+                    redirectContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    return Task.CompletedTask;
+                }
+
+                redirectContext.Response.Redirect(redirectContext.RedirectUri);
+                return Task.CompletedTask;
+            };
+
+            options.Events.OnRedirectToAccessDenied = redirectContext =>
+            {
+                if (ShouldReturn401ForChallenge(redirectContext.Request))
+                {
+                    redirectContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    return Task.CompletedTask;
+                }
+
+                redirectContext.Response.Redirect(redirectContext.RedirectUri);
+                return Task.CompletedTask;
+            };
+        });
+    }
+
+    protected virtual bool ShouldReturn401ForChallenge(HttpRequest request)
+    {
+        if (request.Path.StartsWithSegments("/api")
+            || request.Path.StartsWithSegments("/elsa/api"))
+        {
+            return true;
+        }
+
+        return request.Headers.Accept.Any(value =>
+            value?.Contains("application/json", StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    protected virtual void ConfigureBundles()
+    {
+        Configure<AbpBundlingOptions>(options =>
+        {
+            options.StyleBundles.Configure(
+                BasicThemeBundles.Styles.Global,
+                bundle => bundle.AddFiles("/global-styles.css"));
+        });
+    }
+
+    protected virtual void ConfigureUrls(IConfiguration configuration)
+    {
+        Configure<AppUrlOptions>(options =>
+        {
+            options.Applications["MVC"].RootUrl = configuration["App:SelfUrl"];
+            var allowed = configuration["App:RedirectAllowedUrls"];
+            if (!string.IsNullOrWhiteSpace(allowed))
+            {
+                options.RedirectAllowedUrls.AddRange(
+                    allowed.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            }
         });
     }
 
@@ -223,6 +291,7 @@ public class AbpHttpApiHostModule : AbpModule
         app.UseAbpRequestLocalization();
         app.UseCorrelationId();
         app.UseStaticFiles();
+        app.MapAbpStaticAssets();
         app.UseRouting();
         app.UseCors();
         app.UseAuthentication();
