@@ -46,3 +46,5 @@ static bool IsEfDesignTime()
         "EF",
         StringComparison.OrdinalIgnoreCase);
 }
+
+public partial class Program;

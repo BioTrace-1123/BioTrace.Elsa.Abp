@@ -1,6 +1,7 @@
 using BioTrace.Elsa.Abp.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Controllers;
 using Volo.Abp.AspNetCore;
 using Volo.Abp.Data;
 using Volo.Abp.Identity.EntityFrameworkCore;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using OpenIddict.Validation.AspNetCore;
 using Volo.Abp;
 using Volo.Abp.Account;
@@ -96,6 +98,11 @@ public class AbpHttpApiHostModule : AbpModule
         PreConfigure<OpenIddictServerBuilder>(serverBuilder =>
         {
             serverBuilder.SetIssuer(new Uri(configuration["AuthServer:Authority"]!.TrimEnd('/')));
+
+            if (configuration.GetValue("AuthServer:AllowPasswordGrantForIntegrationTests", false))
+            {
+                serverBuilder.AllowPasswordFlow();
+            }
         });
     }
 
@@ -179,13 +186,17 @@ public class AbpHttpApiHostModule : AbpModule
             options =>
             {
                 options.SwaggerDoc("v1", new() { Title = "BioTrace.Elsa.Abp API", Version = "v1" });
-                options.DocInclusionPredicate((_, _) => true);
+                options.DocInclusionPredicate((docName, apiDesc) =>
+                    string.Equals(docName, "v1", StringComparison.Ordinal)
+                    && apiDesc.ActionDescriptor is ControllerActionDescriptor);
                 options.CustomSchemaIds(type => type.FullName);
             });
     }
 
     protected virtual void ConfigureElsaHost(ServiceConfigurationContext context, IConfiguration configuration)
     {
+        var hostEnvironment = context.Services.GetHostingEnvironment();
+
         Configure<ElsaAbpOptions>(options =>
         {
             configuration.GetSection("Elsa").Bind(options);
@@ -193,6 +204,9 @@ public class AbpHttpApiHostModule : AbpModule
             options.DisableElsaEndpointSecurity = configuration.GetValue(
                 "Elsa:DisableElsaEndpointSecurity",
                 options.DisableElsaEndpointSecurity);
+            options.EnableElsaSwagger = configuration.GetValue(
+                "Elsa:EnableElsaSwagger",
+                hostEnvironment.IsDevelopment());
         });
     }
 
@@ -214,16 +228,26 @@ public class AbpHttpApiHostModule : AbpModule
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
         app.UseAuthorization();
+        var elsaOptions = context.ServiceProvider.GetRequiredService<IOptions<ElsaAbpOptions>>().Value;
+
+        // Elsa OpenAPI must run before Swashbuckle: both default to /swagger/{name}/swagger.json and
+        // Swashbuckle would 404 unknown document names (e.g. "elsa") before FastEndpoints runs.
+        ConfigureElsaMiddleware(app);
+
         app.UseSwagger();
         app.UseAbpSwaggerUI(options =>
         {
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "BioTrace.Elsa.Abp API");
+            if (elsaOptions.EnableElsaSwagger)
+            {
+                options.SwaggerEndpoint(ElsaAbpSwaggerExtensions.OpenApiJsonPath, "Elsa Workflows API");
+            }
+
             var configuration = context.ServiceProvider.GetRequiredService<IConfiguration>();
             options.OAuthClientId(configuration["AuthServer:SwaggerClientId"]);
             options.OAuthScopes("BioTrace_Elsa_Abp");
         });
         app.UseAbpSerilogEnrichers();
-        ConfigureElsaMiddleware(app);
         app.UseConfiguredEndpoints();
     }
 

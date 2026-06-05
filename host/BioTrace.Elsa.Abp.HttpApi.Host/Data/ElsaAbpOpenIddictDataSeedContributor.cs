@@ -77,15 +77,30 @@ public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor, ITrans
 
         var isSwagger = name.Contains("Swagger", StringComparison.OrdinalIgnoreCase);
         var isStudio = name.Contains("Studio", StringComparison.OrdinalIgnoreCase);
+        var isIntegrationTests = name.Contains("IntegrationTests", StringComparison.OrdinalIgnoreCase);
 
         var application = new OpenIddictApplicationDescriptor
         {
             ClientId = clientId,
             DisplayName = name,
-            ClientType = OpenIddictConstants.ClientTypes.Public,
+            ClientType = isIntegrationTests
+                ? OpenIddictConstants.ClientTypes.Confidential
+                : OpenIddictConstants.ClientTypes.Public,
             ConsentType = OpenIddictConstants.ConsentTypes.Implicit,
             ApplicationType = OpenIddictConstants.ApplicationTypes.Web
         };
+
+        if (isIntegrationTests)
+        {
+            var clientSecret = section["ClientSecret"];
+            if (string.IsNullOrWhiteSpace(clientSecret))
+            {
+                throw new InvalidOperationException(
+                    $"OpenIddict application '{name}' requires ClientSecret for integration tests.");
+            }
+
+            application.ClientSecret = clientSecret;
+        }
 
         foreach (var uri in redirectUris.Where(u => !string.IsNullOrWhiteSpace(u)))
         {
@@ -118,6 +133,15 @@ public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor, ITrans
             application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "openid");
             application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "profile");
             application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "email");
+            application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "roles");
+        }
+        else if (isIntegrationTests)
+        {
+            application.Permissions.Add(OpenIddictConstants.Permissions.Endpoints.Token);
+            application.Permissions.Add(OpenIddictConstants.Permissions.GrantTypes.Password);
+            application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "BioTrace_Elsa_Abp");
+            application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "openid");
+            application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "profile");
             application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "roles");
         }
 
