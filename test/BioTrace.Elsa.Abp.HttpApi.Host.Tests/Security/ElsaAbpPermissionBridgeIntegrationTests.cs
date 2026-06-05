@@ -39,7 +39,9 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task Should_return_401_without_token()
     {
-        var response = await _client.GetAsync("/elsa/api/workflow-definitions");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/elsa/api/workflow-definitions");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        var response = await _client.SendAsync(request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
