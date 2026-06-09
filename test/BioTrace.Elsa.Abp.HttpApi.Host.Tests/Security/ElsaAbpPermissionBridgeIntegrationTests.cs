@@ -120,6 +120,23 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Tenant_admin_should_read_commit_strategy_descriptors()
+    {
+        var token = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantAAdminUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/elsa/api/descriptors/commit-strategies/workflows",
+            token,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Designer_should_be_forbidden_on_create_workflow_definition()
     {
         var token = await _tokenClient.RequestPasswordTokenAsync(

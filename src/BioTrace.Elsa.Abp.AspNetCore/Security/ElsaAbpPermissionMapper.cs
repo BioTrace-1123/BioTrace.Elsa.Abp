@@ -5,6 +5,17 @@ namespace BioTrace.Elsa.Abp.Security;
 
 public class ElsaAbpPermissionMapper : IElsaAbpPermissionMapper, ITransientDependency
 {
+    private static readonly string[] StudioDescriptorReadPermissions =
+        ElsaApiPermissionNames.GetStudioDescriptorReadPermissions();
+
+    private static readonly string[] WorkflowDefinitionWritePermissions =
+    [
+        ElsaApiPermissionNames.WorkflowDefinitions.Write,
+        ElsaApiPermissionNames.WorkflowDefinitionActions.Refresh,
+        ElsaApiPermissionNames.WorkflowDefinitionActions.Reload,
+        ElsaApiPermissionNames.WorkflowDefinitionActions.Execute
+    ];
+
     private static readonly IReadOnlyDictionary<string, string[]> AbpToElsaMap = BuildMap();
 
     public virtual IReadOnlyList<string> MapToElsaPermissions(IEnumerable<string> grantedAbpPermissionNames)
@@ -41,13 +52,18 @@ public class ElsaAbpPermissionMapper : IElsaAbpPermissionMapper, ITransientDepen
             [AbpElsaPermissions.WorkflowDefinitions.Default] =
             [
                 ElsaApiPermissionNames.WorkflowDefinitions.Read,
-                ElsaApiPermissionNames.WorkflowDefinitions.Write,
+                ..StudioDescriptorReadPermissions,
+                ..WorkflowDefinitionWritePermissions,
                 ElsaApiPermissionNames.WorkflowDefinitions.Publish,
                 ElsaApiPermissionNames.WorkflowDefinitions.Retract,
                 ElsaApiPermissionNames.WorkflowDefinitions.Delete
             ],
-            [AbpElsaPermissions.WorkflowDefinitions.Read] = [ElsaApiPermissionNames.WorkflowDefinitions.Read],
-            [AbpElsaPermissions.WorkflowDefinitions.Write] = [ElsaApiPermissionNames.WorkflowDefinitions.Write],
+            [AbpElsaPermissions.WorkflowDefinitions.Read] =
+            [
+                ElsaApiPermissionNames.WorkflowDefinitions.Read,
+                ..StudioDescriptorReadPermissions
+            ],
+            [AbpElsaPermissions.WorkflowDefinitions.Write] = WorkflowDefinitionWritePermissions,
             [AbpElsaPermissions.WorkflowDefinitions.Publish] = [ElsaApiPermissionNames.WorkflowDefinitions.Publish],
             [AbpElsaPermissions.WorkflowDefinitions.Retract] = [ElsaApiPermissionNames.WorkflowDefinitions.Retract],
             [AbpElsaPermissions.WorkflowDefinitions.Delete] = [ElsaApiPermissionNames.WorkflowDefinitions.Delete],
@@ -63,7 +79,11 @@ public class ElsaAbpPermissionMapper : IElsaAbpPermissionMapper, ITransientDepen
             [AbpElsaPermissions.WorkflowInstances.Write] = [ElsaApiPermissionNames.WorkflowInstances.Write],
             [AbpElsaPermissions.WorkflowInstances.Delete] = [ElsaApiPermissionNames.WorkflowInstances.Delete],
             [AbpElsaPermissions.WorkflowInstances.Cancel] = [ElsaApiPermissionNames.WorkflowInstances.Cancel],
-            [AbpElsaPermissions.WorkflowInstances.Execute] = [ElsaApiPermissionNames.WorkflowInstances.Execute],
+            [AbpElsaPermissions.WorkflowInstances.Execute] =
+            [
+                ElsaApiPermissionNames.WorkflowInstances.Execute,
+                ElsaApiPermissionNames.Events.Trigger
+            ],
             [AbpElsaPermissions.Alterations.Default] =
             [
                 ElsaApiPermissionNames.Alterations.Read,
