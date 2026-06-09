@@ -1,17 +1,17 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: postgres_shanghua_test
-    hostname: shanghua-test-docker
+    container_name: postgres_BioTrace_test
+    hostname: BioTrace-test-docker
     restart: unless-stopped
     ports:
       - "55432:5432"
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ShangHua@TestPg2026
+      POSTGRES_PASSWORD: BioTrace@TestPg2026
       TZ: Asia/Shanghai
     volumes:
-      - postgres_shanghua_test_data:/var/lib/postgresql/data
+      - postgres_BioTrace_test_data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -20,13 +20,13 @@ services:
       retries: 5
       start_period: 20s
     networks:
-      shanghua_test:
+      BioTrace_test:
         aliases:
-          - shanghua-test-docker
+          - BioTrace-test-docker
 
 networks:
-  shanghua_test:
-    name: shanghua_test
+  BioTrace_test:
+    name: BioTrace_test
 
 volumes:
-  postgres_shanghua_test_data:
+  postgres_BioTrace_test_data:
