@@ -1,4 +1,5 @@
 using BioTrace.Elsa.Abp.EntityFrameworkCore;
+using BioTrace.Elsa.Abp.MultiTenancy;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
@@ -18,6 +19,7 @@ using Volo.Abp;
 using Volo.Abp.Account;
 using Volo.Abp.Account.Web;
 using Volo.Abp.AspNetCore.Mvc;
+using Volo.Abp.AspNetCore.Mvc.Libs;
 using Volo.Abp.AspNetCore.Mvc.UI.Bundling;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Basic;
 using Volo.Abp.AspNetCore.Mvc.UI.Theme.Basic.Bundling;
@@ -28,12 +30,15 @@ using Volo.Abp.EntityFrameworkCore.PostgreSql;
 using Volo.Abp.Identity;
 using Volo.Abp.Identity.AspNetCore;
 using Volo.Abp.Modularity;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement.Identity;
 using Volo.Abp.OpenIddict;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.Swashbuckle;
 using Volo.Abp.Timing;
+using Volo.Abp.TenantManagement;
+using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.UI.Navigation.Urls;
 
 namespace BioTrace.Elsa.Abp;
@@ -41,11 +46,14 @@ namespace BioTrace.Elsa.Abp;
 [DependsOn(
     typeof(AbpHttpApiModule),
     typeof(ElsaAbpAspNetCoreModule),
+    typeof(ElsaAbpMultiTenancyModule),
     typeof(EntityFrameworkCore.AbpEntityFrameworkCoreModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
     typeof(AbpIdentityEntityFrameworkCoreModule),
     typeof(AbpOpenIddictEntityFrameworkCoreModule),
     typeof(AbpPermissionManagementEntityFrameworkCoreModule),
+    typeof(AbpTenantManagementEntityFrameworkCoreModule),
+    typeof(AbpTenantManagementApplicationModule),
     typeof(AbpAutofacModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule),
@@ -135,6 +143,17 @@ public class AbpHttpApiHostModule : AbpModule
             options.ConnectionStrings["AbpIdentity"] = abpConnectionString;
             options.ConnectionStrings["AbpPermissionManagement"] = abpConnectionString;
             options.ConnectionStrings["AbpOpenIddict"] = abpConnectionString;
+            options.ConnectionStrings["AbpTenantManagement"] = abpConnectionString;
+        });
+
+        Configure<AbpMultiTenancyOptions>(options =>
+        {
+            options.IsEnabled = MultiTenancyConsts.IsEnabled;
+        });
+
+        Configure<AbpMvcLibsOptions>(options =>
+        {
+            options.CheckLibs = false;
         });
 
         ConfigureElsaHost(context, configuration);
@@ -269,6 +288,9 @@ public class AbpHttpApiHostModule : AbpModule
         {
             configuration.GetSection("Elsa").Bind(options);
             options.RunMigrations = configuration.GetValue("Elsa:RunMigrations", options.RunMigrations);
+            options.EnableMultiTenancy = configuration.GetValue(
+                "Elsa:EnableMultiTenancy",
+                MultiTenancyConsts.IsEnabled);
             options.DisableElsaEndpointSecurity = configuration.GetValue(
                 "Elsa:DisableElsaEndpointSecurity",
                 options.DisableElsaEndpointSecurity);
@@ -296,6 +318,7 @@ public class AbpHttpApiHostModule : AbpModule
         app.UseCors();
         app.UseAuthentication();
         app.UseAbpOpenIddictValidation();
+        app.UseMultiTenancy();
         app.UseAuthorization();
         var elsaOptions = context.ServiceProvider.GetRequiredService<IOptions<ElsaAbpOptions>>().Value;
 
@@ -322,6 +345,7 @@ public class AbpHttpApiHostModule : AbpModule
 
     protected virtual void ConfigureElsaMiddleware(IApplicationBuilder app)
     {
+        app.UseElsaAbpMultiTenancy();
         app.UseElsaWorkflows();
     }
 }

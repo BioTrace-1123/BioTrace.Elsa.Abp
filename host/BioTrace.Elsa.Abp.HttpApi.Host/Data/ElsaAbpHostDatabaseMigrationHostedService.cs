@@ -7,6 +7,7 @@ using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.Identity.EntityFrameworkCore;
 using Volo.Abp.OpenIddict.EntityFrameworkCore;
 using Volo.Abp.PermissionManagement.EntityFrameworkCore;
+using Volo.Abp.TenantManagement.EntityFrameworkCore;
 using Volo.Abp.Uow;
 
 namespace BioTrace.Elsa.Abp.Data;
@@ -40,6 +41,7 @@ public class ElsaAbpHostDatabaseMigrationHostedService : IHostedService, ITransi
             await MigrateAsync<IdentityDbContext>(scope.ServiceProvider, cancellationToken);
             await MigrateAsync<PermissionManagementDbContext>(scope.ServiceProvider, cancellationToken);
             await MigrateAsync<OpenIddictDbContext>(scope.ServiceProvider, cancellationToken);
+            await MigrateAsync<TenantManagementDbContext>(scope.ServiceProvider, cancellationToken);
             await uow.CompleteAsync();
         }
 
