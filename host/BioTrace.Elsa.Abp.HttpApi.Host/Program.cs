@@ -2,6 +2,7 @@ using BioTrace.Elsa.Abp;
 using BioTrace.Elsa.Abp.Data;
 using Serilog;
 using Serilog.Events;
+using Volo.Abp.Data;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
@@ -18,13 +19,18 @@ try
 
     await builder.AddApplicationAsync<AbpHttpApiHostModule>();
 
-    if (!IsEfDesignTime())
-    {
-        builder.Services.AddHostedService<ElsaAbpHostDatabaseMigrationHostedService>();
-    }
-
     var app = builder.Build();
     await app.InitializeApplicationAsync();
+
+    if (!IsEfDesignTime() && app.Environment.IsDevelopment())
+    {
+        using var scope = app.Services.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<ElsaAbpHostDatabaseMigrationHostedService>()
+            .StartAsync(CancellationToken.None);
+        await scope.ServiceProvider.GetRequiredService<IDataSeeder>().SeedAsync();
+        await scope.ServiceProvider.GetRequiredService<ElsaAbpTenantDemoWorkflowSeeder>().SeedAsync();
+    }
+
     await app.RunAsync();
 
     return 0;

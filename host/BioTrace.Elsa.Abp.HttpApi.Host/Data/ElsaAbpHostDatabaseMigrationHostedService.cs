@@ -44,9 +44,6 @@ public class ElsaAbpHostDatabaseMigrationHostedService : IHostedService, ITransi
             await MigrateAsync<TenantManagementDbContext>(scope.ServiceProvider, cancellationToken);
             await uow.CompleteAsync();
         }
-
-        var dataSeeder = scope.ServiceProvider.GetRequiredService<IDataSeeder>();
-        await dataSeeder.SeedAsync();
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
