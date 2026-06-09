@@ -5,7 +5,7 @@ using Elsa.Studio.Authentication.OpenIdConnect.Contracts;
 
 namespace BioTrace.Elsa.Abp.ElsaStudio.Services;
 
-public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
+public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService, IDisposable
 {
     public const string WriteWorkflowDefinitionsPermission = "write:workflow-definitions";
     public const string WildcardPermission = "*";
@@ -13,16 +13,20 @@ public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ITokenProvider _tokenProvider;
+    private readonly IAbpStudioTenantContext _tenantContext;
     private IReadOnlyList<string>? _cachedPermissions;
 
     public ElsaAbpStudioPermissionService(
         HttpClient httpClient,
         IConfiguration configuration,
-        ITokenProvider tokenProvider)
+        ITokenProvider tokenProvider,
+        IAbpStudioTenantContext tenantContext)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _tokenProvider = tokenProvider;
+        _tenantContext = tenantContext;
+        _tenantContext.TenantChanged += OnTenantChanged;
     }
 
     public virtual async Task<IReadOnlyList<string>> GetPermissionsAsync(CancellationToken cancellationToken = default)
@@ -39,6 +43,8 @@ public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
             return _cachedPermissions;
         }
 
+        await _tenantContext.InitializeAsync(cancellationToken);
+
         using var request = new HttpRequestMessage(HttpMethod.Get, ResolveCurrentUserPath());
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
@@ -50,6 +56,11 @@ public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
         }
 
         var currentUser = await response.Content.ReadFromJsonAsync<ElsaAbpCurrentUserResponse>(cancellationToken);
+        if (currentUser != null)
+        {
+            await _tenantContext.InitializeFromUserAsync(currentUser, cancellationToken);
+        }
+
         _cachedPermissions = currentUser?.Permissions ?? [];
         return _cachedPermissions;
     }
@@ -62,6 +73,16 @@ public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
                || permissions.Contains(WriteWorkflowDefinitionsPermission, StringComparer.OrdinalIgnoreCase);
     }
 
+    public virtual void InvalidateCache()
+    {
+        _cachedPermissions = null;
+    }
+
+    public void Dispose()
+    {
+        _tenantContext.TenantChanged -= OnTenantChanged;
+    }
+
     protected virtual string ResolveCurrentUserPath()
     {
         var configuredPath = _configuration["AbpApi:CurrentUserPath"];
@@ -71,5 +92,10 @@ public class ElsaAbpStudioPermissionService : IElsaAbpStudioPermissionService
         }
 
         return "identity/users/me";
+    }
+
+    private void OnTenantChanged()
+    {
+        InvalidateCache();
     }
 }

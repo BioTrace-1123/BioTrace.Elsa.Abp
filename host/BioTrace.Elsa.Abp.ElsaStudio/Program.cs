@@ -1,4 +1,5 @@
 using BioTrace.Elsa.Abp.ElsaStudio.Components;
+using BioTrace.Elsa.Abp.ElsaStudio.Http;
 using BioTrace.Elsa.Abp.ElsaStudio.Services;
 using Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.OpenIdConnect.HttpMessageHandlers;
@@ -52,11 +53,18 @@ builder.Services.AddOptions<RemoteAuthenticationOptions<OidcProviderOptions>>()
             configuration["Authentication:OpenIdConnect:RoleClaimType"] ?? "role";
     });
 
+builder.Services.AddTransient<AbpTenantHeaderDelegatingHandler>();
+builder.Services.AddScoped<IAbpStudioTenantContext, AbpStudioTenantContext>();
+
 var backendApiConfig = new BackendApiConfig
 {
     ConfigureBackendOptions = options => configuration.GetSection("Backend").Bind(options),
     ConfigureHttpClientBuilder = options =>
-        options.AuthenticationHandler = typeof(OidcAuthenticatingApiHttpMessageHandler)
+    {
+        options.AuthenticationHandler = typeof(OidcAuthenticatingApiHttpMessageHandler);
+        options.ConfigureHttpClientBuilder = clientBuilder =>
+            clientBuilder.AddHttpMessageHandler<AbpTenantHeaderDelegatingHandler>();
+    }
 };
 
 var localizationConfig = new LocalizationConfig
@@ -83,14 +91,21 @@ static void ConfigureAbpStudioIntegration(IServiceCollection services, IConfigur
     }
 
     services.AddHttpClient<IElsaAbpStudioPermissionService, ElsaAbpStudioPermissionService>(client =>
-    {
-        client.BaseAddress = new Uri(authority + "/");
-    });
+        {
+            client.BaseAddress = new Uri(authority + "/");
+        })
+        .AddHttpMessageHandler<AbpTenantHeaderDelegatingHandler>();
 
     services.AddScoped<ICreateWorkflowDialogComponentProvider, AbpCreateWorkflowDialogComponentProvider>();
 }
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var tenantContext = scope.ServiceProvider.GetRequiredService<IAbpStudioTenantContext>();
+    await tenantContext.InitializeAsync();
+}
 
 await app.UseElsaLocalization();
 
