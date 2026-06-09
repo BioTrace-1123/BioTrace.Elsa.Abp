@@ -206,7 +206,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 | `tenant-b` | `tenant-b-admin` | `1q2w3E*` | 用于隔离验证 |
 | Host | `admin` | `1q2w3E*` | Host 管理员（`Abp.Elsa.Admin` → `*`） |
 
-Host 级 `admin` **不会**看到租户内工作流定义；租户用户需带 `__tenant: tenant-a` 等工作流 API 请求。
+Host 级 `admin` 默认不见租户内工作流定义；在 Elsa Studio 右上角租户下拉中选择 `Tenant A` 后，出站请求会自动附加 `__tenant: tenant-a`。租户用户（如 `tenant-a-admin`）登录后自动锁定所属租户并附带同名 Header。
 
 ### 宿主额外依赖（演示）
 
@@ -243,8 +243,9 @@ dotnet run --project host/BioTrace.Elsa.Abp.ElsaStudio --urls "https://localhost
 ```
 
 - Studio UI：`https://localhost:5003`
-- 配置：`host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot/appsettings.json`（`Backend.Url`、`Authentication:OpenIdConnect`）
+- 配置：`host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot/appsettings.json`（`Backend.Url`、`Authentication:OpenIdConnect`、`Tenancy:Tenants`）
 - 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
+- **多租户**：Studio WASM 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header（租户名）。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
 - VS Code / Cursor：**F5** 选择 **Host + Elsa Studio** 复合启动，或分别启动 **Launch HttpApi.Host (HTTPS)** 与 **Launch Elsa Studio (HTTPS)**
 
 CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://localhost:5003`。

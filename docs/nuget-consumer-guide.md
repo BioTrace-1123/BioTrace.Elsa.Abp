@@ -383,7 +383,7 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 | Studio 登录后无按钮 | 调用 `current-user` API 而非解析 JWT；检查 CORS 与 OpenIddict 客户端 RedirectUri |
 | 双 Swagger 路径冲突 | 保持 `UseElsaWorkflows()` 在 `UseSwagger()` **之前** |
 | 租户用户看不到 Elsa 数据 / 串租户 | 确认 `EnableMultiTenancy=true`、`UseMultiTenancy()` 与 `UseElsaAbpMultiTenancy()` 顺序；API 携带 `__tenant` Header |
-| Elsa Studio 多租户 | WASM 客户端需在 HttpClient 拦截器附加 `__tenant`（演示 Host Studio 待跟进） |
+| Elsa Studio 多租户 | 演示 Studio 已通过 `AbpTenantHeaderDelegatingHandler` 附加 `__tenant`；消费方在 `BackendApiConfig.ConfigureHttpClientBuilder` 注册同类 Handler，并配置 `Tenancy:Tenants` 供 Host 用户切换 |
 
 ## 相关文档
 
