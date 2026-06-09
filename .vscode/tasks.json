@@ -127,6 +127,21 @@
       "command": "${workspaceFolder}/scripts/test-integration.sh",
       "group": "test",
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "ef-database-update-all-abp-contexts",
+      "type": "shell",
+      "command": "set -euo pipefail && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext",
+      "options": {
+        "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
     }
   ]
 }

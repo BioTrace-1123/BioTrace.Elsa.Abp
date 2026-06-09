@@ -81,13 +81,10 @@
       "name": "EF: Database Update (All ABP Contexts)",
       "type": "node",
       "request": "launch",
-      "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": [
-        "-lc",
-        "set -euo pipefail && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext"
-      ],
-      "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host",
-      "console": "integratedTerminal",
+      "preLaunchTask": "ef-database-update-all-abp-contexts",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["-e", "process.exit(0)"],
+      "console": "internalConsole",
       "presentation": {
         "group": "database",
         "order": 1
