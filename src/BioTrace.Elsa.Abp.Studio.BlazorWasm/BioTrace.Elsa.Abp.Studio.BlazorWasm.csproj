@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BioTrace.Elsa.Abp.Studio</RootNamespace>
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <!--
+    Elsa Server 锁定 3.5.3；Studio 前端使用 3.7.0（OpenIdConnect WASM 包自 3.7 起提供）。
+    Api.Client 与 Workflows API 在演示环境中与 3.5.3 后端兼容。
+  -->
+  <ItemGroup>
+    <PackageReference Include="Elsa.Api.Client" Version="3.7.0" />
+    <PackageReference Include="Elsa.Studio" Version="3.7.0" />
+    <PackageReference Include="Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm" Version="3.7.0" />
+    <PackageReference Include="Elsa.Studio.Core.BlazorWasm" Version="3.7.0" />
+    <PackageReference Include="Elsa.Studio.Localization.BlazorWasm" Version="3.7.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BioTrace.Elsa.Abp.Application.Contracts\BioTrace.Elsa.Abp.Application.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>
