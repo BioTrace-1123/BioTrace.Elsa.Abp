@@ -133,6 +133,84 @@ public class ElsaAbpMultiTenancyIntegrationTests : IAsyncLifetime
             string.Equals(item.DefinitionId, definitionId, StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task Host_admin_with_tenant_header_should_see_tenant_workflow_definitions()
+    {
+        const string definitionId = "HostImpersonationTest";
+
+        var tenantAToken = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantAAdminUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+
+        using (var createRequest = CreateAuthorizedRequest(
+                   HttpMethod.Post,
+                   "/elsa/api/workflow-definitions",
+                   tenantAToken,
+                   ElsaAbpMultiTenancySeedData.TenantAName))
+        {
+            createRequest.Content = CreateSaveWorkflowDefinitionContent(
+                definitionId,
+                "Host Impersonation Test Workflow");
+
+            (await _client.SendAsync(createRequest)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        var hostAdminToken = await _tokenClient.RequestPasswordTokenAsync("admin");
+
+        using var listRequest = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/elsa/api/workflow-definitions",
+            hostAdminToken,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+
+        var listResponse = await _client.SendAsync(listRequest);
+        listResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var payload = await listResponse.Content.ReadFromJsonAsync<WorkflowDefinitionListResponse>();
+        payload.ShouldNotBeNull();
+        payload!.Items.ShouldContain(item =>
+            string.Equals(item.DefinitionId, definitionId, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Host_admin_with_other_tenant_header_should_not_see_tenant_workflow_definitions()
+    {
+        const string definitionId = "HostImpersonationIsolationTest";
+
+        var tenantAToken = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantAAdminUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+
+        using (var createRequest = CreateAuthorizedRequest(
+                   HttpMethod.Post,
+                   "/elsa/api/workflow-definitions",
+                   tenantAToken,
+                   ElsaAbpMultiTenancySeedData.TenantAName))
+        {
+            createRequest.Content = CreateSaveWorkflowDefinitionContent(
+                definitionId,
+                "Tenant A Only For Host Header Test");
+
+            (await _client.SendAsync(createRequest)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+
+        var hostAdminToken = await _tokenClient.RequestPasswordTokenAsync("admin");
+
+        using var listRequest = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/elsa/api/workflow-definitions",
+            hostAdminToken,
+            ElsaAbpMultiTenancySeedData.TenantBName);
+
+        var listResponse = await _client.SendAsync(listRequest);
+        listResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var payload = await listResponse.Content.ReadFromJsonAsync<WorkflowDefinitionListResponse>();
+        payload.ShouldNotBeNull();
+        payload!.Items.ShouldNotContain(item =>
+            string.Equals(item.DefinitionId, definitionId, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static HttpRequestMessage CreateAuthorizedRequest(
         HttpMethod method,
         string url,

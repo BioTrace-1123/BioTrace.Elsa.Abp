@@ -25,6 +25,11 @@ public class ElsaAbpMultiTenancyModule : AbpModule
             options.IsEnabled = MultiTenancyConsts.IsEnabled;
         });
 
+        Configure<AbpTenantResolveOptions>(options =>
+        {
+            options.TenantResolvers.Insert(0, new ElsaAbpHostTenantHeaderResolveContributor());
+        });
+
         context.Services.AddHttpContextAccessor();
         context.Services.Replace(ServiceDescriptor.Singleton<ITenantAccessor, ElsaAbpTenantAccessor>());
         context.Services.Replace(ServiceDescriptor.Transient<ITenantsProvider, ElsaAbpTenantsProvider>());
