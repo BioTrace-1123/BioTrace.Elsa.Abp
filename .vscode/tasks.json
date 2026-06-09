@@ -2,42 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "check-all-dev-ports",
-      "type": "shell",
-      "command": "${workspaceFolder}/scripts/check-dev-ports.sh all",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
       "label": "check-host-ports",
       "type": "shell",
       "command": "${workspaceFolder}/scripts/check-dev-ports.sh host",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "check-elsa-studio-ports",
-      "type": "shell",
-      "command": "${workspaceFolder}/scripts/check-dev-ports.sh studio",
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared",
-        "showReuseMessage": false
-      },
-      "problemMatcher": []
-    },
-    {
-      "label": "wait-for-host",
-      "type": "shell",
-      "command": "${workspaceFolder}/scripts/check-dev-ports.sh wait-host",
       "presentation": {
         "reveal": "always",
         "panel": "shared",
@@ -53,29 +20,6 @@
       ],
       "dependsOrder": "sequence",
       "problemMatcher": []
-    },
-    {
-      "label": "prelaunch-elsa-studio",
-      "dependsOn": [
-        "check-elsa-studio-ports",
-        "wait-for-host",
-        "build-elsa-studio"
-      ],
-      "dependsOrder": "sequence",
-      "problemMatcher": []
-    },
-    {
-      "label": "build-elsa-studio",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio/BioTrace.Elsa.Abp.ElsaStudio.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary;ForceNoAlign"
-      ],
-      "group": "build",
-      "problemMatcher": "$msCompile"
     },
     {
       "label": "build-host",

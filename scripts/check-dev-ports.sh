@@ -3,7 +3,6 @@
 set -euo pipefail
 
 HOST_PORTS=(44388 44389)
-STUDIO_PORTS=(5003 5004)
 
 port_to_hex() {
   printf '%04X' "$1"
@@ -112,15 +111,6 @@ free_host_processes() {
   free_ports "${HOST_PORTS[@]}"
 }
 
-free_studio_processes() {
-  local -a pids=()
-  if command -v pgrep >/dev/null 2>&1; then
-    mapfile -t pids < <(pgrep -f "BioTrace\.Elsa\.Abp\.ElsaStudio" 2>/dev/null || true)
-    kill_pids "Elsa Studio" "${pids[@]}"
-  fi
-  free_ports "${STUDIO_PORTS[@]}"
-}
-
 wait_for_host() {
   local url="https://localhost:44388/swagger/index.html"
   local max_attempts=180
@@ -141,24 +131,15 @@ wait_for_host() {
 }
 
 case "${1:-}" in
-  host)
+  host|all)
     echo "Checking HttpApi.Host ports (${HOST_PORTS[*]})..."
     free_host_processes
-    ;;
-  studio)
-    echo "Checking Elsa Studio ports (${STUDIO_PORTS[*]})..."
-    free_studio_processes
     ;;
   wait-host)
     wait_for_host
     ;;
-  all)
-    echo "Checking all dev ports (${HOST_PORTS[*]} ${STUDIO_PORTS[*]})..."
-    free_host_processes
-    free_studio_processes
-    ;;
   *)
-    echo "Usage: $0 {host|studio|wait-host|all}" >&2
+    echo "Usage: $0 {host|wait-host|all}" >&2
     exit 1
     ;;
 esac
