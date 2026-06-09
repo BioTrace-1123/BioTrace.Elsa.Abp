@@ -168,6 +168,46 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 
 完整常量见 `AbpElsaPermissions` 与 `ElsaApiPermissionNames`（`Application.Contracts`）。
 
+## 多租户（ABP + Elsa 共享库）
+
+本模块可选启用 **ABP 多租户 + Elsa `Elsa.Tenants` 行级隔离**（单一 `ConnectionStrings:Elsa`，按 `TenantId` 列过滤，无需每租户独立 Elsa 连接串）。
+
+### 架构要点
+
+- **租户主数据**：ABP `TenantManagement`（`AbpTenants`）；**不**启用 Elsa 自带 Tenant CRUD API。
+- **上下文桥接**：`ICurrentTenant` → `ElsaAbpTenantMapper`（Host → `""`，租户 → `Guid.ToString("D")`）→ Elsa `ITenantAccessor`。
+- **可选模块**：`ElsaAbpMultiTenancyModule`（消费方按需引用）。
+- **管道顺序**：`UseAuthentication` → `UseAbpOpenIddictValidation` → **`UseMultiTenancy()`** → `UseAuthorization` → **`UseElsaAbpMultiTenancy()`** → `UseElsaWorkflows()`。
+
+### 配置示例
+
+```json
+{
+  "MultiTenancy": { "IsEnabled": true },
+  "ConnectionStrings": {
+    "Abp": "Host=...;Database=BioTrace_Abp;...",
+    "Elsa": "Host=...;Database=BioTrace_Elsa;..."
+  },
+  "Elsa": {
+    "EnableMultiTenancy": true,
+    "RunMigrations": true
+  }
+}
+```
+
+`MultiTenancyConsts.IsEnabled`（Domain.Shared）与上述配置应对齐。API / Studio 请求需携带 ABP 标准 **`__tenant` Header**（或 Query），或依赖 JWT 内 **`tenantid` Claim**（OpenIddict 自动写入）。
+
+### Host 演示租户（开发种子）
+
+| 租户 | 用户 | 密码 | 说明 |
+|------|------|------|------|
+| `tenant-a` | `tenant-a-admin` | `1q2w3E*` | 租户管理员，含 Elsa 写权限 |
+| `tenant-a` | `tenant-a-designer` | `1q2w3E*` | 租户只读 designer |
+| `tenant-b` | `tenant-b-admin` | `1q2w3E*` | 用于隔离验证 |
+| Host | `admin` | `1q2w3E*` | Host 管理员（`Abp.Elsa.Admin` → `*`） |
+
+Host 级 `admin` **不会**看到租户内工作流定义；租户用户需带 `__tenant: tenant-a` 等工作流 API 请求。
+
 ### 宿主额外依赖（演示）
 
 除 `ElsaAbpAspNetCoreModule` 外，演示 Host 引用 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Abp` 库（与 Elsa 库仍分离）。
@@ -304,7 +344,10 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 | T2 | admin Password Grant Token | `GET /identity/users/me` → 200，`permissions` 含 `*` |
 | T3 | admin Password Grant Token | `GET /elsa/api/workflow-definitions` → 200 |
 | T4 | designer Token | `current-user` 仅 read claims |
-| T5 | designer Token | `POST /elsa/api/workflow-definitions` → 403 |
+| T5 | designer Token + `__tenant` | `POST /elsa/api/workflow-definitions` → 403 |
+| T6 | 租户 A admin 创建定义 + 租户 B 列表 | 租户 B **不应**看到租户 A 的 `definitionId` |
+| T7 | Host admin 列表 | **不应**看到租户内工作流定义 |
+| T8 | 租户用户 Token | JWT 含 `tenantid` Claim |
 
 **三种运行场景**
 

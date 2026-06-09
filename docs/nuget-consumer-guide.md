@@ -37,6 +37,7 @@
 | 前端/其他服务调用 ABP API 代理 | `BioTrace.Elsa.Abp.HttpApi.Client` |
 | ABP CLI / Suite 安装模块元数据 | `BioTrace.Elsa.Abp.Installer` |
 | 仅需 DTO/权限常量（类库） | `BioTrace.Elsa.Abp.Application.Contracts` |
+| **多租户**（ABP TenantManagement + Elsa 行级隔离） | 引用 `ElsaAbpMultiTenancyModule`（已包含在 `BioTrace.Elsa.Abp.AspNetCore` 源码/包内）+ ABP TenantManagement 包（见下文） |
 
 ### 宿主还需的 ABP 官方包（安全与数据）
 
@@ -53,6 +54,17 @@
 ```
 
 若需登录页、Account 模块，可参考演示 Host 额外引用 `Volo.Abp.Account.*`、`Volo.Abp.Identity.AspNetCore` 等。
+
+### 多租户（可选）
+
+启用 ABP + Elsa 共享库多租户时，宿主还需：
+
+```xml
+<PackageReference Include="Volo.Abp.TenantManagement.EntityFrameworkCore" Version="10.4.0" />
+<PackageReference Include="Volo.Abp.TenantManagement.Application" Version="10.4.0" />
+```
+
+并在 `[DependsOn]` 中增加 `ElsaAbpMultiTenancyModule`、`AbpTenantManagementEntityFrameworkCoreModule`、`AbpTenantManagementApplicationModule`（完整示例见演示 Host）。
 
 ## 模块依赖（`[DependsOn]`）
 
@@ -120,8 +132,28 @@ ABP 业务库与 Elsa 工作流库**必须分离**：
 | `EnableHttpActivities` | 启用 Elsa HTTP 触发 Activity | 按需 |
 | `EnablePermissionClaimsBridge` | 将 ABP 权限映射为 JWT/Principal 上的 `permissions` Claim | `true` |
 | `DisableElsaEndpointSecurity` | 关闭 Elsa 端点鉴权（仅开发） | **禁止** `true` |
+| `EnableMultiTenancy` | 启用 `Elsa.UseTenants` + ABP 租户桥接 | 多租户宿主设为 `true` |
+| `HostTenantId` | ABP Host 映射到的 Elsa 租户 ID | 默认 `""` |
+| `TenantIdClaimType` | 从 JWT 解析租户的 Claim 类型 | 默认 `tenantid` |
 
 选项类型定义见 [`ElsaAbpOptions`](../src/BioTrace.Elsa.Abp.Domain/ElsaAbpOptions.cs)。
+
+### 多租户配置（可选）
+
+与 ABP `MultiTenancy:IsEnabled` 及 Domain.Shared 中 `MultiTenancyConsts.IsEnabled` 对齐：
+
+```json
+{
+  "MultiTenancy": { "IsEnabled": true },
+  "Elsa": {
+    "EnableMultiTenancy": true
+  }
+}
+```
+
+- Elsa 仍使用**单一** `ConnectionStrings:Elsa`；工作流定义/实例按 `TenantId` 列隔离。
+- 请求需传递 **`__tenant` Header**（租户名，如 `tenant-a`）或依赖 JWT **`tenantid` Claim**。
+- **无需**为 Elsa 配置 per-tenant 连接串；租户主数据以 ABP `TenantManagement` 为准。
 
 ### 认证与 CORS
 
@@ -300,9 +332,11 @@ public override void OnApplicationInitialization(ApplicationInitializationContex
     app.UseCors();
     app.UseAuthentication();
     app.UseAbpOpenIddictValidation();
+    app.UseMultiTenancy();              // 多租户：在 Authorization 之前
     app.UseAuthorization();
 
     // Elsa OpenAPI 须在 Swashbuckle 之前（若启用 EnableElsaSwagger）
+    app.UseElsaAbpMultiTenancy();       // 多租户：将 ABP 租户推入 Elsa ITenantAccessor
     app.UseElsaWorkflows();
 
     app.UseSwagger();
@@ -348,6 +382,8 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 | Elsa 表未创建 | 确认 `Elsa:RunMigrations=true` 且 `Elsa` 库账号有 DDL 权限 |
 | Studio 登录后无按钮 | 调用 `current-user` API 而非解析 JWT；检查 CORS 与 OpenIddict 客户端 RedirectUri |
 | 双 Swagger 路径冲突 | 保持 `UseElsaWorkflows()` 在 `UseSwagger()` **之前** |
+| 租户用户看不到 Elsa 数据 / 串租户 | 确认 `EnableMultiTenancy=true`、`UseMultiTenancy()` 与 `UseElsaAbpMultiTenancy()` 顺序；API 携带 `__tenant` Header |
+| Elsa Studio 多租户 | WASM 客户端需在 HttpClient 拦截器附加 `__tenant`（演示 Host Studio 待跟进） |
 
 ## 相关文档
 

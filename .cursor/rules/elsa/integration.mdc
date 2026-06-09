@@ -27,12 +27,23 @@ alwaysApply: false
 ## 扩展点（可复用模块）
 
 - `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / `ConfigureElsaSwagger` / `ConfigureElsaActivities` 为 **virtual**。
-- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableElsaSwagger`、`EnableHttpActivities`）。
+- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableElsaSwagger`、`EnableHttpActivities`、`EnableMultiTenancy` 等）。
 - 双 Swagger：ABP `/swagger/v1/swagger.json`；Elsa `/swagger/elsa/openapi.json`（`EnableElsaSwagger`，避免与 Swashbuckle 路径冲突）。
 - 自定义 Activity 放在 Application 层，用 `AddActivitiesFrom<AbpApplicationModule>()` 注册。
+- Elsa PostgreSQL 连接串在 **运行时** 从 `IConfiguration` 解析（`ResolveElsaConnectionString`），便于集成测覆盖 `ConnectionStrings:Elsa`。
+
+## 多租户（可选）
+
+- 引用 **`ElsaAbpMultiTenancyModule`** + ABP TenantManagement（EF + Application）。
+- 设置 `MultiTenancyConsts.IsEnabled = true` 与 `Elsa:EnableMultiTenancy: true`。
+- **共享 Elsa 库**：单一 `ConnectionStrings:Elsa`，Elsa EF 按 `TenantId` 全局过滤器隔离；**不**启用 Elsa 自带 Tenant CRUD endpoints。
+- **ID 映射**：ABP Host（`ICurrentTenant.Id == null`）→ Elsa `""`；ABP 租户 `Guid` → Elsa `guid.ToString("D")`（与 JWT `tenantid` 一致）。
+- 核心类型：`ElsaAbpTenantMapper`、`ElsaAbpTenantsProvider`（读 `ITenantRepository`）、`ElsaAbpCurrentTenantResolver`、`ElsaAbpTenantAccessor`（`ITenantAccessor` 桥接）、`ElsaAbpMultiTenancyMiddleware`。
+- 管道：`UseMultiTenancy()`（Authentication 之后、Authorization 之前）→ `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
+- API 客户端传递 **`__tenant` Header** 或依赖 JWT **`tenantid` Claim**。
 
 ## 宿主集成清单
 
-1. `[DependsOn(typeof(ElsaAbpAspNetCoreModule))]`
+1. `[DependsOn(typeof(ElsaAbpAspNetCoreModule))]`（多租户时加 `ElsaAbpMultiTenancyModule`）
 2. 配置 `ConnectionStrings:Elsa` 与 `Elsa` 节点
-3. Host 管道中 `app.UseElsaWorkflows()`
+3. Host 管道：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `app.UseElsaWorkflows()`
