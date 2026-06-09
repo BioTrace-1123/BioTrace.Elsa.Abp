@@ -27,5 +27,6 @@ public class ElsaAbpMultiTenancyModule : AbpModule
 
         context.Services.AddHttpContextAccessor();
         context.Services.Replace(ServiceDescriptor.Singleton<ITenantAccessor, ElsaAbpTenantAccessor>());
+        context.Services.Replace(ServiceDescriptor.Transient<ITenantsProvider, ElsaAbpTenantsProvider>());
     }
 }

@@ -1,5 +1,6 @@
 using Elsa.Common.Multitenancy;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.TenantManagement;
 using ElsaTenant = Elsa.Common.Multitenancy.Tenant;
 
@@ -9,13 +10,16 @@ public class ElsaAbpTenantsProvider : ITenantsProvider, ITransientDependency
 {
     private readonly ITenantRepository _tenantRepository;
     private readonly IElsaAbpTenantMapper _tenantMapper;
+    private readonly ICurrentTenant _currentTenant;
 
     public ElsaAbpTenantsProvider(
         ITenantRepository tenantRepository,
-        IElsaAbpTenantMapper tenantMapper)
+        IElsaAbpTenantMapper tenantMapper,
+        ICurrentTenant currentTenant)
     {
         _tenantRepository = tenantRepository;
         _tenantMapper = tenantMapper;
+        _currentTenant = currentTenant;
     }
 
     public virtual async Task<IEnumerable<ElsaTenant>> ListAsync(CancellationToken cancellationToken = default)
@@ -25,8 +29,11 @@ public class ElsaAbpTenantsProvider : ITenantsProvider, ITransientDependency
             CreateHostTenant()
         };
 
-        var abpTenants = await _tenantRepository.GetListAsync(cancellationToken: cancellationToken);
-        tenants.AddRange(abpTenants.Select(MapAbpTenant));
+        using (_currentTenant.Change(null))
+        {
+            var abpTenants = await _tenantRepository.GetListAsync(cancellationToken: cancellationToken);
+            tenants.AddRange(abpTenants.Select(MapAbpTenant));
+        }
 
         return tenants;
     }
@@ -44,8 +51,11 @@ public class ElsaAbpTenantsProvider : ITenantsProvider, ITransientDependency
             return CreateHostTenant();
         }
 
-        var abpTenant = await _tenantRepository.FindAsync(abpTenantId.Value, cancellationToken: cancellationToken);
-        return abpTenant == null ? null : MapAbpTenant(abpTenant);
+        using (_currentTenant.Change(null))
+        {
+            var abpTenant = await _tenantRepository.FindAsync(abpTenantId.Value, cancellationToken: cancellationToken);
+            return abpTenant == null ? null : MapAbpTenant(abpTenant);
+        }
     }
 
     protected virtual ElsaTenant CreateHostTenant()
