@@ -1,52 +1,112 @@
 @using System.Security.Claims
+@using BioTrace.Elsa.Abp.ElsaStudio.Models
+@using BioTrace.Elsa.Abp.ElsaStudio.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @inherits StudioComponentBase
 @implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
+@inject IAbpStudioTenantContext TenantContext
+@inject IElsaAbpStudioPermissionService PermissionService
 
 @if (CurrentState?.User.Identity?.IsAuthenticated is true)
 {
-    <MudMenu Label="@GetDisplayName(CurrentState.User)"
-             Variant="Variant.Text"
-             EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
-             AnchorOrigin="Origin.BottomRight"
-             TransformOrigin="Origin.BottomRight"
-             Color="Color.Inherit"
-             Dense="true">
-        @if (!string.IsNullOrWhiteSpace(AccountManagementUrl))
+    <div class="d-flex align-center gap-2">
+        @if (ShowTenantSelector)
         {
-            <MudMenuItem Href="@AccountManagementUrl" Target="_blank">
-                Account
-            </MudMenuItem>
+            <MudSelect T="string"
+                       Value="@SelectedTenantValue"
+                       ValueChanged="OnTenantChangedAsync"
+                       Label="Tenant"
+                       Variant="Variant.Text"
+                       Dense="true"
+                       Margin="Margin.Dense"
+                       Style="min-width: 140px;">
+                <MudSelectItem T="string" Value="@HostTenantValue">Host</MudSelectItem>
+                @foreach (var tenant in AvailableTenants)
+                {
+                    <MudSelectItem T="string" Value="@tenant.Name">@tenant.DisplayName</MudSelectItem>
+                }
+            </MudSelect>
         }
-        <MudMenuItem OnClick="BeginLogOut">Logout</MudMenuItem>
-    </MudMenu>
+        else if (!string.IsNullOrWhiteSpace(TenantContext.CurrentTenantName))
+        {
+            <MudChip T="string" Variant="Variant.Text" Color="Color.Default" Size="Size.Small">
+                @TenantContext.CurrentTenantName
+            </MudChip>
+        }
+
+        <MudMenu Label="@GetDisplayName(CurrentState.User)"
+                 Variant="Variant.Text"
+                 EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                 AnchorOrigin="Origin.BottomRight"
+                 TransformOrigin="Origin.BottomRight"
+                 Color="Color.Inherit"
+                 Dense="true">
+            @if (!string.IsNullOrWhiteSpace(AccountManagementUrl))
+            {
+                <MudMenuItem Href="@AccountManagementUrl" Target="_blank">
+                    Account
+                </MudMenuItem>
+            }
+            <MudMenuItem OnClick="BeginLogOut">Logout</MudMenuItem>
+        </MudMenu>
+    </div>
 }
 
 @code {
+    private const string HostTenantValue = "";
+
     private AuthenticationState? CurrentState;
 
     private string? AccountManagementUrl =>
         Configuration["Authentication:OpenIdConnect:AccountManagementUrl"]
         ?? BuildAccountManagementUrl(Configuration["Authentication:OpenIdConnect:Authority"]);
 
+    private IReadOnlyList<StudioTenantOption> AvailableTenants =>
+        Configuration.GetSection("Tenancy:Tenants").Get<List<StudioTenantOption>>() ?? [];
+
+    private bool ShowTenantSelector => !TenantContext.IsTenantLocked && AvailableTenants.Count > 0;
+
+    private string SelectedTenantValue => TenantContext.CurrentTenantName ?? HostTenantValue;
+
     protected override async Task OnInitializedAsync()
     {
         CurrentState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        TenantContext.TenantChanged += OnTenantChanged;
+
+        await TenantContext.InitializeAsync();
+        await PermissionService.GetPermissionsAsync();
     }
 
     public void Dispose()
     {
         AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        TenantContext.TenantChanged -= OnTenantChanged;
     }
 
     private async void OnAuthenticationStateChanged(Task<AuthenticationState> state)
     {
         CurrentState = await state;
+        PermissionService.InvalidateCache();
+        await PermissionService.GetPermissionsAsync();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnTenantChanged()
+    {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnTenantChangedAsync(string? tenantValue)
+    {
+        var tenantName = string.IsNullOrWhiteSpace(tenantValue) ? null : tenantValue;
+        await TenantContext.SetCurrentTenantAsync(tenantName);
+        PermissionService.InvalidateCache();
+        await PermissionService.GetPermissionsAsync();
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
     private void BeginLogOut()
