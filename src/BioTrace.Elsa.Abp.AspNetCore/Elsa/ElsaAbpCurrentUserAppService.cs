@@ -23,6 +23,8 @@ public class ElsaAbpCurrentUserAppService : ApplicationService, IElsaAbpCurrentU
             UserId = CurrentUser.Id,
             UserName = CurrentUser.UserName,
             Email = CurrentUser.Email,
+            TenantId = CurrentUser.TenantId,
+            TenantName = CurrentTenant.Name,
             Roles = CurrentUser.Roles.ToList(),
             Permissions = permissions.ToList()
         };

@@ -8,6 +8,10 @@ public class ElsaAbpCurrentUserDto
 
     public string? Email { get; set; }
 
+    public Guid? TenantId { get; set; }
+
+    public string? TenantName { get; set; }
+
     public List<string> Roles { get; set; } = [];
 
     /// <summary>Elsa FastEndpoints permission strings (e.g. read:workflow-definitions, *).</summary>
