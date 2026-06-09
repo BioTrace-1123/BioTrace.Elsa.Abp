@@ -18,6 +18,7 @@ public class ElsaAbpMultiTenancyHostDataSeedContributor : IDataSeedContributor, 
     private readonly ICurrentTenant _currentTenant;
     private readonly ITenantRepository _tenantRepository;
     private readonly ITenantManager _tenantManager;
+    private readonly ITenantNormalizer _tenantNormalizer;
     private readonly IIdentityRoleRepository _roleRepository;
     private readonly IIdentityUserRepository _userRepository;
     private readonly IdentityUserManager _userManager;
@@ -30,6 +31,7 @@ public class ElsaAbpMultiTenancyHostDataSeedContributor : IDataSeedContributor, 
         ICurrentTenant currentTenant,
         ITenantRepository tenantRepository,
         ITenantManager tenantManager,
+        ITenantNormalizer tenantNormalizer,
         IIdentityRoleRepository roleRepository,
         IIdentityUserRepository userRepository,
         IdentityUserManager userManager,
@@ -41,6 +43,7 @@ public class ElsaAbpMultiTenancyHostDataSeedContributor : IDataSeedContributor, 
         _currentTenant = currentTenant;
         _tenantRepository = tenantRepository;
         _tenantManager = tenantManager;
+        _tenantNormalizer = tenantNormalizer;
         _roleRepository = roleRepository;
         _userRepository = userRepository;
         _userManager = userManager;
@@ -79,7 +82,8 @@ public class ElsaAbpMultiTenancyHostDataSeedContributor : IDataSeedContributor, 
 
     protected virtual async Task<Guid> EnsureTenantIdAsync(string tenantName)
     {
-        var tenant = await _tenantRepository.FindByNameAsync(tenantName);
+        var normalizedName = _tenantNormalizer.NormalizeName(tenantName);
+        var tenant = await _tenantRepository.FindByNameAsync(normalizedName);
         if (tenant != null)
         {
             return tenant.Id;
