@@ -393,7 +393,7 @@ PR 合并前两个 job 均须通过。
 2. 通过 CI：确保编译、单元测、集成测全部通过。
 3. README 完整：确认模块集成方式、连接串、权限说明与版本策略无误。
 4. 仓库 Secret：在 GitHub 仓库设置 `NUGET_API_KEY`（NuGet.org API Key）。
-5. （建议）许可证：发布公开包前补充 `LICENSE` 并在项目中声明 License 元数据。
+5. 许可证：根目录 `LICENSE`（MIT），NuGet 元数据见 `common.props` 的 `PackageLicenseExpression`。
 
 ### 本地打包验证
 
@@ -418,4 +418,4 @@ dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj
 
 ## 许可证
 
-尚未指定许可证。若计划开源并发布公开 NuGet 包，请在仓库根目录添加 `LICENSE`，并在项目打包元数据中声明对应许可证信息。
+本项目采用 [MIT License](LICENSE) 开源。
