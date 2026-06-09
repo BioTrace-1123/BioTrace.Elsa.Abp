@@ -25,24 +25,27 @@ public static class PostgresAvailability
         await using var connection = new NpgsqlConnection(IntegrationTestPostgresSettings.GetAdminConnectionString());
         await connection.OpenAsync(cancellationToken);
 
-        await EnsureDatabaseAsync(connection, "BioTrace_Abp_Test", cancellationToken);
-        await EnsureDatabaseAsync(connection, "BioTrace_Elsa_Test", cancellationToken);
+        await RecreateDatabaseAsync(connection, "BioTrace_Abp_Test", cancellationToken);
+        await RecreateDatabaseAsync(connection, "BioTrace_Elsa_Test", cancellationToken);
     }
 
-    private static async Task EnsureDatabaseAsync(
+    private static async Task RecreateDatabaseAsync(
         NpgsqlConnection connection,
         string databaseName,
         CancellationToken cancellationToken)
     {
-        await using var checkCommand = connection.CreateCommand();
-        checkCommand.CommandText = "SELECT 1 FROM pg_database WHERE datname = @name";
-        checkCommand.Parameters.AddWithValue("name", databaseName);
+        await using var terminateCommand = connection.CreateCommand();
+        terminateCommand.CommandText = """
+            SELECT pg_terminate_backend(pid)
+            FROM pg_stat_activity
+            WHERE datname = @name AND pid <> pg_backend_pid()
+            """;
+        terminateCommand.Parameters.AddWithValue("name", databaseName);
+        await terminateCommand.ExecuteNonQueryAsync(cancellationToken);
 
-        var exists = await checkCommand.ExecuteScalarAsync(cancellationToken) != null;
-        if (exists)
-        {
-            return;
-        }
+        await using var dropCommand = connection.CreateCommand();
+        dropCommand.CommandText = $"""DROP DATABASE IF EXISTS "{databaseName}" """;
+        await dropCommand.ExecuteNonQueryAsync(cancellationToken);
 
         await using var createCommand = connection.CreateCommand();
         createCommand.CommandText = $"""CREATE DATABASE "{databaseName}" """;
