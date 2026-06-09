@@ -1,5 +1,6 @@
 using BioTrace.Elsa.Abp.EntityFrameworkCore;
 using BioTrace.Elsa.Abp.MultiTenancy;
+using BioTrace.Elsa.Abp.Studio;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
@@ -167,6 +168,8 @@ public class AbpHttpApiHostModule : AbpModule
         {
             options.IsDynamicClaimsEnabled = true;
         });
+
+        context.Services.AddBioTraceElsaAbpStudioHost(configuration);
     }
 
     protected virtual void ConfigureAuthentication(ServiceConfigurationContext context)
@@ -340,6 +343,7 @@ public class AbpHttpApiHostModule : AbpModule
             options.OAuthScopes("BioTrace_Elsa_Abp");
         });
         app.UseAbpSerilogEnrichers();
+        app.UseBioTraceElsaAbpStudioHost();
         app.UseConfiguredEndpoints();
     }
 

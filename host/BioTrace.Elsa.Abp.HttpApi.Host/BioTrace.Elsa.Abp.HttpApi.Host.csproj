@@ -76,6 +76,10 @@
 
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.HttpApi\BioTrace.Elsa.Abp.HttpApi.csproj" />
 
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.Studio.AspNetCore\BioTrace.Elsa.Abp.Studio.AspNetCore.csproj" />
+
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.Studio.Client\BioTrace.Elsa.Abp.Studio.Client.csproj" />
+
   </ItemGroup>
 
 
