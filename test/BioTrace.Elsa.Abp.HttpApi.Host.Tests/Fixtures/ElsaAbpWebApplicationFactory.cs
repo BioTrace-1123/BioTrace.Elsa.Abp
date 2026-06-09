@@ -38,7 +38,7 @@ public class ElsaAbpWebApplicationFactory : WebApplicationFactory<Program>
         await PostgresAvailability.EnsureTestDatabasesAsync(cancellationToken);
 
         var postgresBase = IntegrationTestPostgresSettings.GetConnectionBase();
-        Environment.SetEnvironmentVariable("ConnectionStrings__Abp", $"{postgresBase};Database=BioTrace_Abp_Test");
+        Environment.SetEnvironmentVariable("ConnectionStrings__Default", $"{postgresBase};Database=BioTrace_Abp_Test");
         Environment.SetEnvironmentVariable("ConnectionStrings__Elsa", $"{postgresBase};Database=BioTrace_Elsa_Test");
     }
 
@@ -55,11 +55,11 @@ public class ElsaAbpWebApplicationFactory : WebApplicationFactory<Program>
         builder.ConfigureAppConfiguration((_, configurationBuilder) =>
         {
             var postgresBase = IntegrationTestPostgresSettings.GetConnectionBase();
-            var abpConnection = $"{postgresBase};Database=BioTrace_Abp_Test";
+            var defaultConnection = $"{postgresBase};Database=BioTrace_Abp_Test";
             var elsaConnection = $"{postgresBase};Database=BioTrace_Elsa_Test";
 
             // Dev Container sets ConnectionStrings__* env vars; override so Elsa uses the test database.
-            Environment.SetEnvironmentVariable("ConnectionStrings__Abp", abpConnection);
+            Environment.SetEnvironmentVariable("ConnectionStrings__Default", defaultConnection);
             Environment.SetEnvironmentVariable("ConnectionStrings__Elsa", elsaConnection);
 
             configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
@@ -69,7 +69,7 @@ public class ElsaAbpWebApplicationFactory : WebApplicationFactory<Program>
                 ["AuthServer:Authority"] = BaseUrl,
                 ["AuthServer:AllowPasswordGrantForIntegrationTests"] = "true",
                 ["AuthServer:SwaggerClientId"] = "BioTrace_Elsa_Abp_Swagger",
-                ["ConnectionStrings:Abp"] = abpConnection,
+                ["ConnectionStrings:Default"] = defaultConnection,
                 ["ConnectionStrings:Elsa"] = elsaConnection,
                 ["Elsa:RunMigrations"] = "true",
                 ["Elsa:EnableWorkflowsApi"] = "true",

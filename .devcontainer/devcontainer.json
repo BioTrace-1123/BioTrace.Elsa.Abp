@@ -18,7 +18,7 @@
   "remoteEnv": {
     "ASPNETCORE_ENVIRONMENT": "Development",
     "INTEGRATION_TEST_POSTGRES_HOST": "postgres",
-    "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
+    "ConnectionStrings__Default": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
     "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres",
     "PATH": "/home/vscode/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"

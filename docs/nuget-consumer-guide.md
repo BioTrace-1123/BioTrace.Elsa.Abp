@@ -99,13 +99,13 @@ ABP 业务库与 Elsa 工作流库**必须分离**：
 ```json
 {
   "ConnectionStrings": {
-    "Abp": "Host=localhost;Port=5432;Database=MyApp_Abp;Username=app_user;Password=***",
+    "Default": "Host=localhost;Port=5432;Database=MyApp_Abp;Username=app_user;Password=***",
     "Elsa": "Host=localhost;Port=5432;Database=MyApp_Elsa;Username=elsa_user;Password=***"
   }
 }
 ```
 
-- `Abp`：对应 `AbpDbProperties.ConnectionStringName`，存放 Identity、OpenIddict、PermissionManagement 及本模块业务表。
+- `Default`：对应 `AbpDbProperties.ConnectionStringName`（与 ABP 标准一致），存放 Identity、OpenIddict、PermissionManagement 及本模块业务表。
 - `Elsa`：对应 `ElsaAbpDbProperties.ConnectionStringName`（默认名 `Elsa`），存放 Elsa Management / Runtime 表。
 - 未配置 `ConnectionStrings:Elsa` 时启动抛出 `Abp:ElsaConnectionStringNotConfigured`。
 
@@ -203,16 +203,16 @@ dotnet ef migrations add Initial_Abp --context AbpDbContext
 dotnet ef database update --context AbpDbContext
 ```
 
-同时将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向 **同一 `Abp` 库**（演示 Host 做法）：
+同时将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向 **同一 `Default` 库**（演示 Host 做法）：
 
 ```csharp
 Configure<AbpDbConnectionOptions>(options =>
 {
-    var abp = configuration.GetConnectionString(AbpDbProperties.ConnectionStringName)!;
-    options.ConnectionStrings.Default = abp;
-    options.ConnectionStrings["AbpIdentity"] = abp;
-    options.ConnectionStrings["AbpPermissionManagement"] = abp;
-    options.ConnectionStrings["AbpOpenIddict"] = abp;
+    var defaultCs = configuration.GetConnectionString(AbpDbProperties.ConnectionStringName)!;
+    options.ConnectionStrings.Default = defaultCs;
+    options.ConnectionStrings["AbpIdentity"] = defaultCs;
+    options.ConnectionStrings["AbpPermissionManagement"] = defaultCs;
+    options.ConnectionStrings["AbpOpenIddict"] = defaultCs;
 });
 ```
 

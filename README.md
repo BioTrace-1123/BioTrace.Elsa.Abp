@@ -28,7 +28,7 @@ src/
   BioTrace.Elsa.Abp.Domain
   BioTrace.Elsa.Abp.Application.Contracts
   BioTrace.Elsa.Abp.Application          # 含示例 Activity（PrintMessageActivity）
-  BioTrace.Elsa.Abp.EntityFrameworkCore  # ABP 业务 DbContext（连接名 Abp）
+  BioTrace.Elsa.Abp.EntityFrameworkCore  # ABP 业务 DbContext（连接名 Default）
   BioTrace.Elsa.Abp.AspNetCore           # Elsa 服务注册（连接名 Elsa）
   BioTrace.Elsa.Abp.HttpApi
   BioTrace.Elsa.Abp.HttpApi.Client
@@ -55,11 +55,11 @@ test/
    ```csharp
    [DependsOn(typeof(ElsaAbpAspNetCoreModule), typeof(AbpHttpApiModule))]
    ```
-2. 在 `appsettings.json` 中配置**独立**连接串（名称默认为 `Elsa`，与 `Abp` 业务库分离）：
+2. 在 `appsettings.json` 中配置**独立**连接串（`Default` 为 ABP 业务库，`Elsa` 为工作流库）：
    ```json
    {
      "ConnectionStrings": {
-       "Abp": "Host=...;Database=your_abp_db;...",
+       "Default": "Host=...;Database=your_abp_db;...",
        "Elsa": "Host=...;Database=your_elsa_db;..."
      },
      "Elsa": {
@@ -185,7 +185,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 {
   "MultiTenancy": { "IsEnabled": true },
   "ConnectionStrings": {
-    "Abp": "Host=...;Database=BioTrace_Abp;...",
+    "Default": "Host=...;Database=BioTrace_Abp;...",
     "Elsa": "Host=...;Database=BioTrace_Elsa;..."
   },
   "Elsa": {
@@ -210,7 +210,7 @@ Host 级 `admin` 默认不见租户内工作流定义；在 Elsa Studio 右上�
 
 ### 宿主额外依赖（演示）
 
-除 `ElsaAbpAspNetCoreModule` 外，演示 Host 引用 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Abp` 库（与 Elsa 库仍分离）。
+除 `ElsaAbpAspNetCoreModule` 外，演示 Host 引用 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Default` 库（与 Elsa 库仍分离）。
 
 ## 本地运行 Host（PostgreSQL）
 
@@ -262,7 +262,7 @@ CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://loc
 4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
 5. 浏览器访问 `https://localhost:44388`（Swagger）。
 
-容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Abp` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
+容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Default` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
 
 **常见问题**
 

@@ -20,8 +20,8 @@ alwaysApply: false
 
 ## 连接串
 
-- ABP 业务库：`ConnectionStrings:Abp`（`AbpDbProperties.ConnectionStringName`）。
-- Elsa 工作流库：`ConnectionStrings:Elsa`（`ElsaAbpDbProperties.ConnectionStringName`），**消费者必填**，与 Abp 分离。
+- ABP 业务库：`ConnectionStrings:Default`（`AbpDbProperties.ConnectionStringName`）。
+- Elsa 工作流库：`ConnectionStrings:Elsa`（`ElsaAbpDbProperties.ConnectionStringName`），**消费者必填**，与 Default 业务库分离。
 - 未配置 Elsa 连接串时抛出 `Abp:ElsaConnectionStringNotConfigured`。
 
 ## 扩展点（可复用模块）

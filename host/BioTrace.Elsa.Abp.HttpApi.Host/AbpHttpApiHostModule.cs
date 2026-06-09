@@ -138,12 +138,12 @@ public class AbpHttpApiHostModule : AbpModule
 
         Configure<AbpDbConnectionOptions>(options =>
         {
-            var abpConnectionString = configuration.GetConnectionString(AbpDbProperties.ConnectionStringName)!;
-            options.ConnectionStrings.Default = abpConnectionString;
-            options.ConnectionStrings["AbpIdentity"] = abpConnectionString;
-            options.ConnectionStrings["AbpPermissionManagement"] = abpConnectionString;
-            options.ConnectionStrings["AbpOpenIddict"] = abpConnectionString;
-            options.ConnectionStrings["AbpTenantManagement"] = abpConnectionString;
+            var defaultConnectionString = configuration.GetConnectionString(AbpDbProperties.ConnectionStringName)!;
+            options.ConnectionStrings.Default = defaultConnectionString;
+            options.ConnectionStrings["AbpIdentity"] = defaultConnectionString;
+            options.ConnectionStrings["AbpPermissionManagement"] = defaultConnectionString;
+            options.ConnectionStrings["AbpOpenIddict"] = defaultConnectionString;
+            options.ConnectionStrings["AbpTenantManagement"] = defaultConnectionString;
         });
 
         Configure<AbpMultiTenancyOptions>(options =>
