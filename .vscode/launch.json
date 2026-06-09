@@ -1,5 +1,26 @@
 {
   "version": "0.2.0",
+  "inputs": [
+    {
+      "id": "efMigrationName",
+      "type": "promptString",
+      "description": "EF 迁移名称（如 Added_Book）",
+      "default": "Migration"
+    },
+    {
+      "id": "efDbContext",
+      "type": "pickString",
+      "description": "ABP DbContext",
+      "options": [
+        "AbpDbContext",
+        "IdentityDbContext",
+        "PermissionManagementDbContext",
+        "OpenIddictDbContext",
+        "TenantManagementDbContext"
+      ],
+      "default": "AbpDbContext"
+    }
+  ],
   "configurations": [
     {
       "name": "Launch HttpApi.Host (HTTPS)",
@@ -55,6 +76,22 @@
       "name": "Attach to Process",
       "type": "coreclr",
       "request": "attach"
+    },
+    {
+      "name": "EF: Database Update (All ABP Contexts)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": [
+        "-lc",
+        "set -euo pipefail && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext"
+      ],
+      "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host",
+      "console": "integratedTerminal",
+      "presentation": {
+        "group": "database",
+        "order": 1
+      }
     }
   ],
   "compounds": [
