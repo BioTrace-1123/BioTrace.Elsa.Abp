@@ -5,7 +5,7 @@
       "name": "Launch HttpApi.Host (HTTPS)",
       "type": "coreclr",
       "request": "launch",
-      "preLaunchTask": "build-host",
+      "preLaunchTask": "prelaunch-host",
       "program": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host/bin/Debug/net10.0/BioTrace.Elsa.Abp.HttpApi.Host.dll",
       "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host",
       "launchBrowser": {
@@ -23,17 +23,33 @@
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "https://localhost:44388;http://localhost:44389"
+      },
+      "presentation": {
+        "group": "host+studio",
+        "order": 1
       }
     },
     {
       "name": "Launch Elsa Studio (HTTPS)",
       "type": "blazorwasm",
       "request": "launch",
-      "preLaunchTask": "build-elsa-studio",
+      "preLaunchTask": "prelaunch-elsa-studio",
       "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio",
       "browser": "edge",
       "url": "https://localhost:5003",
-      "webRoot": "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot"
+      "webRoot": "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:5003;http://localhost:5004"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "presentation": {
+        "group": "host+studio",
+        "order": 2
+      }
     },
     {
       "name": "Attach to Process",
@@ -48,7 +64,12 @@
         "Launch HttpApi.Host (HTTPS)",
         "Launch Elsa Studio (HTTPS)"
       ],
-      "stopAll": true
+      "preLaunchTask": "check-all-dev-ports",
+      "stopAll": true,
+      "presentation": {
+        "group": "host+studio",
+        "order": 0
+      }
     }
   ]
 }

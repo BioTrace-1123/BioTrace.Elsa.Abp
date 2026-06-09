@@ -4,10 +4,12 @@
   "service": "dev",
   "workspaceFolder": "/workspaces/BioTrace.Elsa.Abp",
   "remoteUser": "vscode",
-  "forwardPorts": [44388, 44389],
+  "forwardPorts": [44388, 44389, 5003, 5004],
   "portsAttributes": {
     "44388": { "label": "HttpApi.Host HTTPS", "onAutoForward": "notify" },
-    "44389": { "label": "HttpApi.Host HTTP" }
+    "44389": { "label": "HttpApi.Host HTTP" },
+    "5003": { "label": "Elsa Studio HTTPS", "onAutoForward": "notify" },
+    "5004": { "label": "Elsa Studio HTTP" }
   },
   "mounts": [
     "source=${localEnv:HOME}/.gcm,target=/home/vscode/.gcm,type=bind,consistency=cached",
