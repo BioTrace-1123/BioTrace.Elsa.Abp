@@ -25,7 +25,7 @@ RUN if ! getent group "${USERNAME}" >/dev/null; then \
 # Docker Desktop / daemon proxy can break apt during image build.
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client openssh-client \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends postgresql-client openssh-client nodejs npm \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /workspaces \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
