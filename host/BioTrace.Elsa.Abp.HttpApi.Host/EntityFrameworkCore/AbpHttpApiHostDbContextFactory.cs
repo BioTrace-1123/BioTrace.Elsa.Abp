@@ -13,6 +13,7 @@ public class AbpHttpApiHostDbContextFactory : IDesignTimeDbContextFactory<AbpDbC
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var connectionString = configuration.GetConnectionString(AbpDbProperties.ConnectionStringName)!;
