@@ -24,7 +24,8 @@ public class ElsaAbpCurrentUserAppService : ApplicationService, IElsaAbpCurrentU
             UserName = CurrentUser.UserName,
             Email = CurrentUser.Email,
             TenantId = CurrentUser.TenantId,
-            TenantName = CurrentTenant.Name,
+            // Host users may pass __tenant for impersonation; only expose tenant for real tenant users.
+            TenantName = CurrentUser.TenantId.HasValue ? CurrentTenant.Name : null,
             Roles = CurrentUser.Roles.ToList(),
             Permissions = permissions.ToList()
         };

@@ -80,7 +80,9 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
 
         var currentUser = await response.Content.ReadFromJsonAsync<ElsaAbpCurrentUserDto>();
         currentUser.ShouldNotBeNull();
-        currentUser!.Permissions.ShouldContain(ElsaApiPermissionNames.Wildcard);
+        currentUser!.TenantId.ShouldBeNull();
+        currentUser.TenantName.ShouldBeNull();
+        currentUser.Permissions.ShouldContain(ElsaApiPermissionNames.Wildcard);
     }
 
     [Fact]
