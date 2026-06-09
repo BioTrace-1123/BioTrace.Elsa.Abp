@@ -14,6 +14,7 @@ using Volo.Abp;
 using Volo.Abp.AspNetCore;
 using Volo.Abp.Modularity;
 using Volo.Abp.Security.Claims;
+using BioTrace.Elsa.Abp.MultiTenancy;
 using BioTrace.Elsa.Abp.Security;
 
 namespace BioTrace.Elsa.Abp;
@@ -83,11 +84,13 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         ElsaAbpOptions options,
         bool enableElsaSwagger)
     {
+        ElsaAbpMultiTenancyConfigurator.Configure(elsa, options);
+
         elsa.UseWorkflowManagement(management =>
         {
             management.UseEntityFrameworkCore(ef =>
             {
-                ef.UsePostgreSql(connectionString);
+                ef.UsePostgreSql(ResolveElsaConnectionString);
                 ef.RunMigrations = options.RunMigrations;
             });
         });
@@ -96,7 +99,7 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         {
             runtime.UseEntityFrameworkCore(ef =>
             {
-                ef.UsePostgreSql(connectionString);
+                ef.UsePostgreSql(ResolveElsaConnectionString);
                 ef.RunMigrations = options.RunMigrations;
             });
         });
@@ -137,5 +140,12 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         }
 
         return connectionString;
+    }
+
+    protected virtual string ResolveElsaConnectionString(IServiceProvider serviceProvider)
+    {
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<ElsaAbpOptions>>().Value;
+        return GetElsaConnectionString(configuration, options);
     }
 }
