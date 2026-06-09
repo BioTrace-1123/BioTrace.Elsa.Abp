@@ -3,7 +3,7 @@ using Microsoft.JSInterop;
 
 namespace BioTrace.Elsa.Abp.ElsaStudio.Services;
 
-public class AbpStudioTenantContext : IAbpStudioTenantContext, IAsyncDisposable
+public class AbpStudioTenantContext : IAbpStudioTenantContext
 {
     public const string LocalStorageKey = "biotrace.elsa.studio.tenant";
 
@@ -78,11 +78,6 @@ public class AbpStudioTenantContext : IAbpStudioTenantContext, IAsyncDisposable
         _currentTenantName = normalizedTenantName;
         await WriteStoredTenantNameAsync(normalizedTenantName, cancellationToken);
         TenantChanged?.Invoke();
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        return ValueTask.CompletedTask;
     }
 
     protected virtual async Task<string?> ReadStoredTenantNameAsync(CancellationToken cancellationToken)

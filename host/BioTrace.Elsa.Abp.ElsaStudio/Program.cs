@@ -101,11 +101,8 @@ static void ConfigureAbpStudioIntegration(IServiceCollection services, IConfigur
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var tenantContext = scope.ServiceProvider.GetRequiredService<IAbpStudioTenantContext>();
-    await tenantContext.InitializeAsync();
-}
+var tenantContext = app.Services.GetRequiredService<IAbpStudioTenantContext>();
+await tenantContext.InitializeAsync();
 
 await app.UseElsaLocalization();
 
