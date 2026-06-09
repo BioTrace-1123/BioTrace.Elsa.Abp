@@ -40,10 +40,14 @@ public class AbpStudioTenantContext : IAbpStudioTenantContext
     {
         await InitializeAsync(cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(currentUser.TenantName))
+        if (currentUser.TenantId.HasValue)
         {
             _isTenantLocked = true;
-            await ApplyTenantAsync(currentUser.TenantName, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(currentUser.TenantName))
+            {
+                await ApplyTenantAsync(currentUser.TenantName, cancellationToken);
+            }
+
             return;
         }
 

@@ -42,6 +42,13 @@
 <script src="_content/Radzen.Blazor/Radzen.Blazor.js"></script>
 <!-- Required for WebAssembly OIDC (RemoteAuthenticatorView / RemoteAuthenticationService). -->
 <script src="_content/Microsoft.AspNetCore.Components.WebAssembly.Authentication/AuthenticationService.js"></script>
+<!-- Elsa Studio culture persistence; loaded globally to avoid fragile dynamic import paths. -->
+<script>
+    window.blazorCulture = {
+        get: () => window.localStorage['BlazorCulture'],
+        set: (value) => window.localStorage['BlazorCulture'] = value
+    };
+</script>
 <script src="_framework/blazor.webassembly.js"></script>
 </body>
 

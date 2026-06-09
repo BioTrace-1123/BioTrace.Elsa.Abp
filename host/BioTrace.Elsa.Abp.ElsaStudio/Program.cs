@@ -1,6 +1,8 @@
 using BioTrace.Elsa.Abp.ElsaStudio.Components;
+using BioTrace.Elsa.Abp.ElsaStudio.Extensions;
 using BioTrace.Elsa.Abp.ElsaStudio.Http;
 using BioTrace.Elsa.Abp.ElsaStudio.Services;
+using Elsa.Studio.Localization.Services;
 using Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm.Extensions;
 using Elsa.Studio.Authentication.OpenIdConnect.HttpMessageHandlers;
 using Elsa.Studio.Contracts;
@@ -15,6 +17,7 @@ using Elsa.Studio.Shell.Extensions;
 using Elsa.Studio.Workflows.Contracts;
 using Elsa.Studio.Workflows.Designer.Extensions;
 using Elsa.Studio.Workflows.Extensions;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -78,6 +81,7 @@ builder.Services.AddRemoteBackend(backendApiConfig);
 builder.Services.AddDashboardModule();
 builder.Services.AddWorkflowsModule();
 builder.Services.AddLocalizationModule(localizationConfig);
+builder.Services.AddScoped<ICultureService, AbpElsaStudioCultureService>();
 
 ConfigureAbpStudioIntegration(builder.Services, configuration);
 
@@ -104,7 +108,25 @@ var app = builder.Build();
 var tenantContext = app.Services.GetRequiredService<IAbpStudioTenantContext>();
 await tenantContext.InitializeAsync();
 
-await app.UseElsaLocalization();
+// Elsa startup tasks prefetch workflow data; resolve tenant from the signed-in user first.
+var authState = await app.Services
+    .GetRequiredService<AuthenticationStateProvider>()
+    .GetAuthenticationStateAsync();
+if (authState.User.Identity?.IsAuthenticated == true)
+{
+    try
+    {
+        await app.Services
+            .GetRequiredService<IElsaAbpStudioPermissionService>()
+            .GetPermissionsAsync();
+    }
+    catch (HttpRequestException)
+    {
+        // Host may be unavailable during local startup; tenant context will sync on first API call.
+    }
+}
+
+await app.UseAbpElsaStudioLocalizationAsync();
 
 var startupTaskRunner = app.Services.GetRequiredService<IStartupTaskRunner>();
 await startupTaskRunner.RunStartupTasksAsync();

@@ -15,6 +15,8 @@ public class AbpTenantHeaderDelegatingHandler : DelegatingHandler
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
+        await _tenantContext.InitializeAsync(cancellationToken);
+
         var tenantName = _tenantContext.CurrentTenantName;
         if (!string.IsNullOrWhiteSpace(tenantName))
         {
