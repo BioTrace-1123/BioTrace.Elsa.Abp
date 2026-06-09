@@ -15,4 +15,6 @@ public interface IAbpStudioTenantContext
     Task InitializeFromUserAsync(ElsaAbpCurrentUserResponse currentUser, CancellationToken cancellationToken = default);
 
     Task SetCurrentTenantAsync(string? tenantName, CancellationToken cancellationToken = default);
+
+    Task ClearTenantAsync(CancellationToken cancellationToken = default);
 }

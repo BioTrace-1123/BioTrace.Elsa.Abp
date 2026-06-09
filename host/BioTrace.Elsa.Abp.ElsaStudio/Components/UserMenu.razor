@@ -89,9 +89,22 @@
 
     private async void OnAuthenticationStateChanged(Task<AuthenticationState> state)
     {
+        var previousUserId = CurrentState?.User.FindFirst("sub")?.Value
+                             ?? CurrentState?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
         CurrentState = await state;
         PermissionService.InvalidateCache();
         await PermissionService.GetPermissionsAsync();
+
+        var nextUserId = CurrentState.User.FindFirst("sub")?.Value
+                         ?? CurrentState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!string.Equals(previousUserId, nextUserId, StringComparison.Ordinal))
+        {
+            Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+            return;
+        }
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -109,8 +122,9 @@
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
     }
 
-    private void BeginLogOut()
+    private async Task BeginLogOut()
     {
+        await TenantContext.ClearTenantAsync();
         Navigation.NavigateToLogout("authentication/logout");
     }
 
