@@ -206,7 +206,12 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 | `tenant-b` | `tenant-b-admin` | `1q2w3E*` | 用于隔离验证 |
 | Host | `admin` | `1q2w3E*` | Host 管理员（`Abp.Elsa.Admin` → `*`） |
 
-Host 级 `admin` 默认不见租户内工作流定义；在 Elsa Studio 右上角租户下拉中选择 `Tenant A` 后，出站请求会自动附加 `__tenant: tenant-a`。租户用户（如 `tenant-a-admin`）登录后自动锁定所属租户并附带同名 Header。
+Host 级 `admin` 默认只见 **Host 租户**（`TenantId` 为空）下的工作流；在 Elsa Studio 右上角租户下拉中选择 `Tenant A` 后，出站请求会自动附加 `__tenant: tenant-a`，此时应只看到 Tenant A 的流程。租户用户（如 `tenant-a-admin`）登录后自动锁定所属租户并附带同名 Header。
+
+> **常见现象**
+> - 若流程是在 Host 上下文（未选租户）下创建的，其 `TenantId` 为空，仅 `admin` 在 Host 视图下可见；租户用户列表为空。请切换到目标租户后再创建，或依赖下方演示种子工作流。
+> - 租户用户通过 OIDC 登录时，须在 Host 登录页填写/选择租户（或访问 `https://localhost:44388/Account/Login?__tenant=tenant-a`），否则 Token 可能缺少 `tenantid` Claim，导致权限与工作流隔离失效。
+> - 切换登录账户后 Studio 会强制刷新页面；若仍显示上一用户数据，请先 Logout 再登录。
 
 ### 宿主额外依赖（演示）
 
