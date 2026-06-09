@@ -69,6 +69,8 @@ jobs:
           dotnet pack src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Studio.BlazorWasm/BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Studio.AspNetCore/BioTrace.Elsa.Abp.Studio.AspNetCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
 
       - name: Upload artifacts

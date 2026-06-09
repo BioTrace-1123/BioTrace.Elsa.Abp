@@ -33,9 +33,11 @@ src/
   BioTrace.Elsa.Abp.HttpApi
   BioTrace.Elsa.Abp.HttpApi.Client
   BioTrace.Elsa.Abp.Installer
+  BioTrace.Elsa.Abp.Studio.BlazorWasm    # Elsa Studio ABP 集成 RCL（租户/权限/组件）
+  BioTrace.Elsa.Abp.Studio.Client        # Elsa Studio WASM 可执行壳（Hosted）
+  BioTrace.Elsa.Abp.Studio.AspNetCore    # Hosted WASM 服务端扩展
 host/
-  BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主
-  BioTrace.Elsa.Abp.ElsaStudio           # Elsa Studio Blazor WASM（OpenIddict）
+  BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主（含 /studio 托管 Elsa Studio）
 test/
   BioTrace.Elsa.Abp.TestBase
   BioTrace.Elsa.Abp.AspNetCore.Tests
@@ -104,7 +106,7 @@ test/
 ```json
 {
   "App": {
-    "CorsOrigins": ["https://localhost:44388", "https://localhost:5003"]
+    "CorsOrigins": ["https://localhost:44388"]
   },
   "AuthServer": {
     "Authority": "https://localhost:44388",
@@ -114,12 +116,16 @@ test/
     "Applications": {
       "ElsaStudio": {
         "ClientId": "ElsaStudio",
-        "RootUrl": "https://localhost:5003",
+        "RootUrl": "https://localhost:44388/studio",
         "RedirectUris": [
-          "https://localhost:5003/authentication/login-callback"
+          "https://localhost:44388/studio/authentication/login-callback"
         ]
       }
     }
+  },
+  "ElsaStudio": {
+    "Enabled": true,
+    "PathBase": "/studio"
   },
   "Elsa": {
     "EnableElsaSwagger": true,
@@ -131,7 +137,7 @@ test/
 
 - CORS 必须**显式 Origin** + `AllowCredentials()`，禁止 `AllowAnyOrigin()` 与 OIDC 混用。
 - **双 Swagger**（ABP Swashbuckle 与 Elsa FastEndpoints 分离，见下节）。
-- Elsa Studio WASM 见下文「运行 Elsa Studio」；`Backend.Url` 指向 Host（`https://localhost:44388/elsa/api`），Code Flow 客户端 `ElsaStudio`。
+- Elsa Studio 由 HttpApi.Host 同域托管于 `/studio`（见下文「运行 Elsa Studio」）；Code Flow 客户端 `ElsaStudio`。
 - 生产环境勿设置 `Elsa:DisableElsaEndpointSecurity=true`；生产建议 `Elsa:EnableElsaSwagger=false`。
 
 ### 双 Swagger（ABP API + Elsa Workflows API）
@@ -233,27 +239,24 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 ## 运行 Elsa Studio
 
-演示宿主已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 为独立 Blazor WASM 项目，通过 OpenId Connect 向 Host 换 Token，再调用 Elsa Workflows API。
+演示宿主已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 由 **HttpApi.Host 同域 Hosted WASM** 提供，路径为 `/studio`，通过 OpenId Connect 向 Host 换 Token，再调用 Elsa Workflows API。
 
 > **版本说明**：Elsa Server 锁定 **3.5.3**；`Elsa.Studio.*` 前端使用 **3.7.0**（OpenIdConnect WASM 包自 3.7 起发布）。Api.Client 与 3.5.3 后端在演示环境中兼容。
 
-**前置**：PostgreSQL 与 HttpApi.Host 已启动（见上一节）。
+**前置**：PostgreSQL 已启动（见上一节）。
 
 ```bash
-# 终端 1：Host（若未运行）
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
-
-# 终端 2：Studio
-dotnet run --project host/BioTrace.Elsa.Abp.ElsaStudio --urls "https://localhost:5003;http://localhost:5004"
 ```
 
-- Studio UI：`https://localhost:5003`
-- 配置：`host/BioTrace.Elsa.Abp.ElsaStudio/wwwroot/appsettings.json`（`Backend.Url`、`Authentication:OpenIdConnect`、`Tenancy:Tenants`）
+- Studio UI：`https://localhost:44388/studio`
+- WASM 运行时配置：`src/BioTrace.Elsa.Abp.Studio.Client/wwwroot/appsettings.json`（`ElsaStudio:Backend`、`ElsaStudio:Authentication:OpenIdConnect`、`ElsaStudio:Tenancy:Tenants`）
+- Host 托管配置：`host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json` 中 `ElsaStudio:Enabled`、`ElsaStudio:PathBase` 与 `OpenIddict:Applications:ElsaStudio`
 - 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
-- **多租户**：Studio WASM 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header（租户名）。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
-- VS Code / Cursor：**F5** 选择 **Host + Elsa Studio** 复合启动，或分别启动 **Launch HttpApi.Host (HTTPS)** 与 **Launch Elsa Studio (HTTPS)**
+- **多租户**：`BioTrace.Elsa.Abp.Studio.BlazorWasm` 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
+- VS Code / Cursor：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，浏览器自动打开 `/studio`
 
-CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://localhost:5003`。
+> 若从独立 Studio 端口（`:5003`）迁移，请重启 Host 以重新 Seed OpenIddict 客户端 RedirectUri，或手动更新 `OpenIddictApplications` 表。
 
 ## 使用 Dev Container（推荐）
 
@@ -265,7 +268,7 @@ CORS 已在 Host `appsettings.json` 的 `App:CorsOrigins` 中包含 `https://loc
 2. 命令面板执行 **Dev Containers: Reopen in Container**。
 3. 等待镜像构建与 `postCreate`（`dotnet dev-certs https --trust`、`dotnet restore`）。
 4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
-5. 浏览器访问 `https://localhost:44388`（Swagger）。
+5. 浏览器访问 `https://localhost:44388/studio`（Elsa Studio）或 `https://localhost:44388/swagger`（ABP API）。
 
 容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Default` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
 
@@ -434,6 +437,8 @@ PR 合并前两个 job 均须通过。
 | `BioTrace.Elsa.Abp.HttpApi.Client` | `BioTrace.Elsa.Abp.HttpApi.Client` |
 | `BioTrace.Elsa.Abp.EntityFrameworkCore` | `BioTrace.Elsa.Abp.EntityFrameworkCore` |
 | `BioTrace.Elsa.Abp.AspNetCore` | `BioTrace.Elsa.Abp.AspNetCore` |
+| `BioTrace.Elsa.Abp.Studio.BlazorWasm` | `BioTrace.Elsa.Abp.Studio.BlazorWasm` |
+| `BioTrace.Elsa.Abp.Studio.AspNetCore` | `BioTrace.Elsa.Abp.Studio.AspNetCore` |
 | `BioTrace.Elsa.Abp.Installer` | `BioTrace.Elsa.Abp.Installer` |
 
 ### 发布前检查清单

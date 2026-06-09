@@ -38,6 +38,8 @@
 | ABP CLI / Suite 安装模块元数据 | `BioTrace.Elsa.Abp.Installer` |
 | 仅需 DTO/权限常量（类库） | `BioTrace.Elsa.Abp.Application.Contracts` |
 | **多租户**（ABP TenantManagement + Elsa 行级隔离） | 引用 `ElsaAbpMultiTenancyModule`（已包含在 `BioTrace.Elsa.Abp.AspNetCore` 源码/包内）+ ABP TenantManagement 包（见下文） |
+| **Elsa Studio**（ABP 租户切换 + 权限按钮） | `BioTrace.Elsa.Abp.Studio.BlazorWasm` |
+| **Elsa Studio Hosted**（API Host 内嵌 `/studio`） | `BioTrace.Elsa.Abp.Studio.AspNetCore` + 自有 WASM Client 项目引用 |
 
 ### 宿主还需的 ABP 官方包（安全与数据）
 
@@ -372,6 +374,37 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 
 集成测矩阵（T0–T5）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/Security/ElsaAbpPermissionBridgeIntegrationTests.cs)。
 
+## Elsa Studio 集成（可选）
+
+### 自有 Blazor WASM 宿主
+
+引用 `BioTrace.Elsa.Abp.Studio.BlazorWasm`，在 `Program.cs` 中：
+
+```csharp
+builder.AddBioTraceElsaAbpStudio();
+var app = builder.Build();
+await app.RunBioTraceElsaAbpStudioAsync();
+```
+
+在 `wwwroot/appsettings.json` 配置 `ElsaStudio` 节（`Authentication:OpenIdConnect`、`Backend`、`Tenancy:Tenants`、`AbpApi:CurrentUserPath`）。完整示例见演示 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/wwwroot/appsettings.json)。
+
+### API Host 内嵌 Hosted WASM（同域 `/studio`）
+
+1. 引用 `BioTrace.Elsa.Abp.Studio.AspNetCore` 与 WASM Client 项目（可参考 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)）。
+2. 宿主模块中注册：
+
+```csharp
+context.Services.AddBioTraceElsaAbpStudioHost(configuration);
+
+// OnApplicationInitialization，在 UseConfiguredEndpoints 之前：
+app.UseBioTraceElsaAbpStudioHost();
+```
+
+3. 配置 `ElsaStudio:Enabled`、`ElsaStudio:PathBase`（默认 `/studio`）。
+4. OpenIddict 客户端 `ElsaStudio` 的 `RedirectUris` 须与 `PathBase` 对齐（如 `https://api.example.com/studio/authentication/login-callback`）。
+
+RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-user 权限查询；配置 `ElsaStudio:Tenancy:Tenants` 供 Host 用户切换租户。
+
 ## 常见问题
 
 | 现象 | 处理 |
@@ -383,7 +416,8 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 | Studio 登录后无按钮 | 调用 `current-user` API 而非解析 JWT；检查 CORS 与 OpenIddict 客户端 RedirectUri |
 | 双 Swagger 路径冲突 | 保持 `UseElsaWorkflows()` 在 `UseSwagger()` **之前** |
 | 租户用户看不到 Elsa 数据 / 串租户 | 确认 `EnableMultiTenancy=true`、`UseMultiTenancy()` 与 `UseElsaAbpMultiTenancy()` 顺序；API 携带 `__tenant` Header |
-| Elsa Studio 多租户 | 演示 Studio 已通过 `AbpTenantHeaderDelegatingHandler` 附加 `__tenant`；消费方在 `BackendApiConfig.ConfigureHttpClientBuilder` 注册同类 Handler，并配置 `Tenancy:Tenants` 供 Host 用户切换 |
+| Elsa Studio 多租户 | 引用 `BioTrace.Elsa.Abp.Studio.BlazorWasm` 并调用 `AddBioTraceElsaAbpStudio()`；配置 `ElsaStudio:Tenancy:Tenants` 供 Host 用户切换；Hosted 模式另需 `AddBioTraceElsaAbpStudioHost()` |
+| Studio OIDC redirect 失败 | 确认 OpenIddict `RedirectUris` 与 `ElsaStudio:PathBase` 一致；开发环境重启 Host 触发 Seed 更新 |
 
 ## 相关文档
 
