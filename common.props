@@ -10,8 +10,8 @@
         <Copyright>Copyright (c) BioTrace</Copyright>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <Description>ABP reusable module for integrating Elsa 3 workflows with OpenIddict authorization and PostgreSQL persistence.</Description>
-        <PackageProjectUrl>https://github.com/BioTrace/BioTrace.Elsa.Abp</PackageProjectUrl>
-        <RepositoryUrl>https://github.com/BioTrace/BioTrace.Elsa.Abp.git</RepositoryUrl>
+        <PackageProjectUrl>https://github.com/BioTrace-1123/BioTrace.Elsa.Abp</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/BioTrace-1123/BioTrace.Elsa.Abp.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>abp;elsa;workflow;openiddict;postgresql;module</PackageTags>
         <PackageReadmeFile>README.md</PackageReadmeFile>
