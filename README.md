@@ -232,8 +232,14 @@ cd host/BioTrace.Elsa.Abp.HttpApi.Host && npm install && cd ../..
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 ```
 
-- ABP Swagger：`https://localhost:44388/swagger`
-- Elsa Swagger：`https://localhost:44388/swagger/elsa`
+- **演示入口**（Host 启动后手动在浏览器打开）：
+
+  | 地址 | 说明 |
+  |------|------|
+  | [https://localhost:44388/studio](https://localhost:44388/studio) | Elsa Studio |
+  | [https://localhost:44388/swagger](https://localhost:44388/swagger) | ABP Swagger |
+  | [https://localhost:44388/swagger/elsa](https://localhost:44388/swagger/elsa) | Elsa Swagger |
+
 - Elsa Workflows API：`https://localhost:44388/elsa/api/*`（如 `workflow-definitions`）
 - `docker/postgres/init` 会创建 `BioTrace_Abp`、`BioTrace_Elsa`、`BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 四个库
 
@@ -249,12 +255,12 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 ```
 
-- Studio UI：`https://localhost:44388/studio`
+- Studio UI：[https://localhost:44388/studio](https://localhost:44388/studio)（同域 Hosted WASM，勿在末尾多加 `/` 以免部分环境出现重定向循环）
 - WASM 运行时配置：`src/BioTrace.Elsa.Abp.Studio.Client/wwwroot/appsettings.json`（`ElsaStudio:Backend`、`ElsaStudio:Authentication:OpenIdConnect`、`ElsaStudio:Tenancy:Tenants`）
 - Host 托管配置：`host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json` 中 `ElsaStudio:Enabled`、`ElsaStudio:PathBase` 与 `OpenIddict:Applications:ElsaStudio`
 - 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
 - **多租户**：`BioTrace.Elsa.Abp.Studio.BlazorWasm` 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
-- VS Code / Cursor：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，浏览器自动打开 `/studio`
+- VS Code / Cursor：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，启动后手动打开上表中的演示入口
 
 > 若从独立 Studio 端口（`:5003`）迁移，请重启 Host 以重新 Seed OpenIddict 客户端 RedirectUri，或手动更新 `OpenIddictApplications` 表。
 
@@ -268,7 +274,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 2. 命令面板执行 **Dev Containers: Reopen in Container**。
 3. 等待镜像构建与 `postCreate`（`dotnet dev-certs https --trust`、`dotnet restore`）。
 4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
-5. 浏览器访问 `https://localhost:44388/studio`（Elsa Studio）或 `https://localhost:44388/swagger`（ABP API）。
+5. 浏览器手动打开演示入口：`/studio`、`/swagger`、`/swagger/elsa`（见上文「本地运行 Host」表格）。
 
 容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Default` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
 
