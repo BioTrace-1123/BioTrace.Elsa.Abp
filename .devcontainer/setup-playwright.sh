@@ -4,5 +4,12 @@
 set -euo pipefail
 
 echo "Installing Playwright Chromium for Agent MCP verification..."
-npx -y playwright@latest install chromium
+npx -y playwright@latest install --with-deps chromium
+
+if [[ -f test/BioTrace.Elsa.Abp.E2E/package.json ]]; then
+  echo "Installing E2E Playwright browsers..."
+  npm ci --prefix test/BioTrace.Elsa.Abp.E2E
+  npm exec --prefix test/BioTrace.Elsa.Abp.E2E -- playwright install chromium
+fi
+
 echo "Playwright Chromium ready."

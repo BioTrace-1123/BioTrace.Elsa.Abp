@@ -30,8 +30,14 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && mkdir -p /workspaces \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
-# Chromium system libraries for Playwright MCP (headless browser verification in devcontainer).
+# Chromium system libraries for Playwright MCP and E2E tests.
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
+    && apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
+        libpango-1.0-0 libcairo2 libasound2 libx11-6 libxcb1 libxext6 libxi6 \
+    && rm -rf /var/lib/apt/lists/* \
     && npm install -g playwright@latest \
     && npx playwright install-deps chromium \
     && npm uninstall -g playwright
