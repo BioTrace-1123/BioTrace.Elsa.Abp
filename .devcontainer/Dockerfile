@@ -30,6 +30,12 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && mkdir -p /workspaces \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
+# Chromium system libraries for Playwright MCP (headless browser verification in devcontainer).
+RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
+    && npm install -g playwright@latest \
+    && npx playwright install-deps chromium \
+    && npm uninstall -g playwright
+
 USER $USERNAME
 RUN dotnet tool install -g git-credential-manager --version 2.8.0
 ENV PATH="/home/vscode/.dotnet/tools:${PATH}"
