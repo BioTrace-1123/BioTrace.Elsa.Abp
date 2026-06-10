@@ -72,6 +72,8 @@
 
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.AspNetCore\BioTrace.Elsa.Abp.AspNetCore.csproj" />
 
+    <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.5.3" />
+
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.EntityFrameworkCore\BioTrace.Elsa.Abp.EntityFrameworkCore.csproj" />
 
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.HttpApi\BioTrace.Elsa.Abp.HttpApi.csproj" />
