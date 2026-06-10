@@ -31,16 +31,13 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
 # Chromium system libraries for Playwright MCP and E2E tests.
+# Use playwright install-deps instead of a manual apt list — Ubuntu Noble renames
+# packages (e.g. libasound2 → libasound2t64) and Playwright tracks the correct names.
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
-    && apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 \
-        libpango-1.0-0 libcairo2 libasound2 libx11-6 libxcb1 libxext6 libxi6 \
-    && rm -rf /var/lib/apt/lists/* \
     && npm install -g playwright@latest \
     && npx playwright install-deps chromium \
-    && npm uninstall -g playwright
+    && npm uninstall -g playwright \
+    && rm -rf /var/lib/apt/lists/*
 
 USER $USERNAME
 RUN dotnet tool install -g git-credential-manager --version 2.8.0
