@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
 using Volo.Abp.Authorization.Permissions;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.Users;
 using Xunit;
@@ -27,6 +28,37 @@ public class ElsaAbpEffectivePermissionsProvider_Tests
         result.ShouldBe([ElsaApiPermissionNames.Wildcard]);
         await permissionManager.DidNotReceiveWithAnyArgs().GetAllAsync(default!, default!);
         await permissionChecker.Received(1).IsGrantedAsync(AbpElsaPermissions.Admin);
+    }
+
+    [Fact]
+    public async Task Host_admin_should_resolve_wildcard_when_current_tenant_is_switched()
+    {
+        var permissionManager = Substitute.For<IPermissionManager>();
+        var permissionChecker = Substitute.For<IPermissionChecker>();
+        var currentTenant = CreateCurrentTenant(Guid.NewGuid());
+        permissionChecker
+            .IsGrantedAsync(AbpElsaPermissions.Admin)
+            .Returns(_ => Task.FromResult(currentTenant.Id == null));
+        var currentUser = Substitute.For<ICurrentUser>();
+        currentUser.IsAuthenticated.Returns(true);
+        currentUser.TenantId.Returns((Guid?)null);
+        currentUser.Id.Returns(Guid.NewGuid());
+        currentUser.Roles.Returns([]);
+
+        var provider = new ElsaAbpEffectivePermissionsProvider(
+            permissionManager,
+            permissionChecker,
+            new ElsaAbpPermissionMapper(),
+            currentUser,
+            currentTenant,
+            Substitute.For<IHttpContextAccessor>(),
+            Options.Create(new ElsaAbpOptions()));
+
+        var result = await provider.GetElsaPermissionsAsync();
+        result.ShouldBe([ElsaApiPermissionNames.Wildcard]);
+
+        await permissionChecker.Received(1).IsGrantedAsync(AbpElsaPermissions.Admin);
+        await permissionManager.DidNotReceiveWithAnyArgs().GetAllAsync(default!, default!);
     }
 
     [Fact]
@@ -55,6 +87,7 @@ public class ElsaAbpEffectivePermissionsProvider_Tests
             permissionChecker,
             new ElsaAbpPermissionMapper(),
             currentUser,
+            CreateCurrentTenant(),
             httpContextAccessor,
             Options.Create(new ElsaAbpOptions()));
 
@@ -80,7 +113,27 @@ public class ElsaAbpEffectivePermissionsProvider_Tests
             permissionChecker,
             new ElsaAbpPermissionMapper(),
             currentUser,
+            CreateCurrentTenant(),
             Substitute.For<IHttpContextAccessor>(),
             Options.Create(new ElsaAbpOptions()));
+    }
+
+    private static ICurrentTenant CreateCurrentTenant(Guid? tenantId = null)
+    {
+        var activeTenantId = tenantId;
+        var currentTenant = Substitute.For<ICurrentTenant>();
+        currentTenant.Id.Returns(_ => activeTenantId);
+        currentTenant.Change(Arg.Any<Guid?>()).Returns(callInfo =>
+        {
+            var previous = activeTenantId;
+            activeTenantId = callInfo.Arg<Guid?>();
+            return new TenantScopeRestore(() => activeTenantId = previous);
+        });
+        return currentTenant;
+    }
+
+    private sealed class TenantScopeRestore(Action restore) : IDisposable
+    {
+        public void Dispose() => restore();
     }
 }
