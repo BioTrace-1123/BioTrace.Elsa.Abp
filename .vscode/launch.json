@@ -29,19 +29,6 @@
       "preLaunchTask": "prelaunch-host",
       "program": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host/bin/Debug/net10.0/BioTrace.Elsa.Abp.HttpApi.Host.dll",
       "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host",
-      "launchBrowser": {
-        "enabled": true,
-        "args": "https://localhost:44388/studio",
-        "windows": {
-          "command": "cmd.exe",
-          "args": "/C start https://localhost:44388/studio"
-        }
-      },
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
-        "uriFormat": "https://localhost:44388/studio"
-      },
       "env": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "ASPNETCORE_URLS": "https://localhost:44388;http://localhost:44389"
