@@ -10,6 +10,8 @@ alwaysApply: false
 
 Dev Container 已配置 `.cursor/mcp.json` 中的 **playwright** MCP。改动 Elsa Studio、Host 管道或影响 `/studio` 的行为后，Agent **应**用 Playwright MCP 做端到端验证，而不仅依赖 `dotnet test`。
 
+正式可 CI 的套件见 [`test/BioTrace.Elsa.Abp.E2E`](../../test/BioTrace.Elsa.Abp.E2E/)（`./scripts/test-e2e.sh`）；MCP 用于开发时快速冒烟，检查清单应与 E2E spec 保持一致。
+
 ## 前置条件
 
 1. **MCP 已连接**：Cursor Settings → MCP → `playwright` 为绿色且 tools 可用；否则提示用户 Reload Window 或重建 Dev Container。
@@ -24,12 +26,12 @@ Dev Container 已配置 `.cursor/mcp.json` 中的 **playwright** MCP。改动 El
 
 ## 演示账户（Development 种子）
 
-| 用户 | 密码 | 用途 |
-|------|------|------|
-| `admin` | `1q2w3E*` | Host 管理员，`Abp.Elsa.Admin` |
-| `designer` | `1q2w3E*` | 只读 Definitions + Instances |
-| `operator` | `1q2w3E*` | 读 + 执行/取消实例 |
-| `tenant-a-admin` | `1q2w3E*` | 租户 A（需 `__tenant=tenant-a`） |
+| 用户 | 密码 | 租户 | 用途 |
+|------|------|------|------|
+| `admin` | `1q2w3E*` | Host | `Abp.Elsa.Admin` → Elsa `*` |
+| `tenant-a-admin` | `1q2w3E*` | `tenant-a` | 租户管理员，CRUD/执行/取消 |
+| `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读 Definitions + Instances |
+| `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离验证 |
 
 租户登录 URL 示例：`https://localhost:44388/Account/Login?__tenant=tenant-a`
 
@@ -46,9 +48,10 @@ Dev Container 已配置 `.cursor/mcp.json` 中的 **playwright** MCP。改动 El
 - Host 用户 `admin` 在 Host 视图 vs 选择 `Tenant A` 后列表应不同。
 - 租户用户 Token 须含 `tenantid` Claim（登录页须选/填租户）。
 
-## 与集成测试的分工
+## 与自动化测试的分工
 
-- **Playwright MCP**：Studio/UI、OIDC 登录流、同域 `/studio` 托管。
+- **Playwright MCP**：开发时 Studio/UI、OIDC 登录流快速冒烟。
+- **`test/BioTrace.Elsa.Abp.E2E`**：可重复的 Playwright 套件（OIDC + Studio 全链路），CI `e2e-tests` job。
 - **`dotnet test --filter Category=Integration`**：API、OpenIddict、多租户隔离（无需浏览器）。
 
-两者互补；UI 相关改动至少完成 Playwright MCP 冒烟验证。
+三者互补；UI 相关改动至少完成 MCP 冒烟或 `./scripts/test-e2e.sh` 相关用例。

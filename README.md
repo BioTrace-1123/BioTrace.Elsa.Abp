@@ -94,8 +94,8 @@ test/
 | 用户 | 密码 | 角色 | 说明 |
 |------|------|------|------|
 | `admin` | `1q2w3E*` | admin | `Abp.Elsa.Admin` → Elsa `*` |
-| `designer` | `1q2w3E*` | designer | 只读 Definitions + Instances |
-| `operator` | `1q2w3E*` | operator | 读定义/实例 + 执行/取消实例 |
+
+租户演示账户见下文「多租户」；只读/执行场景请使用 `tenant-a-designer` / `tenant-a-admin`（非 Host 级 `designer`/`operator`）。
 
 开发环境 Host 启动时会自动 **Migrate + Seed**（`ElsaAbpHostDatabaseMigrationHostedService`，仅 Development）。
 
@@ -241,7 +241,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
   | [https://localhost:44388/swagger/elsa](https://localhost:44388/swagger/elsa) | Elsa Swagger |
 
 - Elsa Workflows API：`https://localhost:44388/elsa/api/*`（如 `workflow-definitions`）
-- `docker/postgres/init` 会创建 `BioTrace_Abp`、`BioTrace_Elsa`、`BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 四个库
+- `docker/postgres/init` 会创建 `BioTrace_Abp`、`BioTrace_Elsa`、`BioTrace_Abp_Test`、`BioTrace_Elsa_Test`、`BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E` 六个库
 
 ## 运行 Elsa Studio
 
@@ -337,6 +337,7 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 | 单元测 | `BioTrace.Elsa.Abp.*.Tests`（含 Mapper/Provider/Contributor） | 无 Postgres | `dotnet test --filter "Category!=Integration"` |
 | Contributor 快测 | [`AspNetCore.Tests`](test/BioTrace.Elsa.Abp.AspNetCore.Tests/) | 无 Postgres | 同上（`ElsaAbpPermissionClaimsPrincipalContributor_Tests`） |
 | Host 集成测 | [`HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) | Postgres | [`./scripts/test-integration.sh`](scripts/test-integration.sh) |
+| 浏览器 E2E | [`BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) | Postgres + Playwright | [`./scripts/test-e2e.sh`](scripts/test-e2e.sh) |
 
 ### Host 集成测
 
@@ -374,7 +375,28 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 
 连接串主机可通过环境变量 `INTEGRATION_TEST_POSTGRES_HOST` 覆盖（默认 `localhost`）。测试库 `BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 在 Postgres 可达时由测试 fixture 自动创建（亦见 [`docker/postgres/init/01-create-databases.sql`](docker/postgres/init/01-create-databases.sql)）。
 
-VS Code / Cursor 任务：**test-solution**（单元测）、**test-integration**（集成测）。
+### 浏览器 E2E（Playwright）
+
+项目 [`test/BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) 通过 **真实 OIDC Authorization Code + PKCE** 登录 Elsa Studio，验证 UI、多租户切换与工作流生命周期（创建/发布/执行/取消）。使用独立库 `BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E`；`playwright.config.ts` 的 `webServer` 会自动启动 Host（Development Migrate + Seed）。
+
+```bash
+./scripts/test-e2e.sh
+# 或（Dev Container 内，Postgres 主机为 postgres）
+E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
+```
+
+**E2E 演示账户**（与种子一致）：
+
+| 用户 | 密码 | 租户 | 用途 |
+|------|------|------|------|
+| `admin` | `1q2w3E*` | Host | Studio 冒烟、Host 代管租户 |
+| `tenant-a-admin` | `1q2w3E*` | `tenant-a` | 工作流 CRUD/执行/取消 |
+| `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读权限 |
+| `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离 |
+
+CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright Chromium）。
+
+VS Code / Cursor 任务：**test-solution**（单元测）、**test-integration**（集成测）、**test-e2e**（浏览器 E2E）。
 
 演示 Host 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
 
