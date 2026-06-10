@@ -27,25 +27,48 @@ public static class BioTraceElsaAbpStudioHostingExtensions
             return app;
         }
 
-        if (app is not WebApplication webApp)
+        if (app is not WebApplication)
         {
             throw new InvalidOperationException(
                 "BioTrace Elsa Studio hosting requires WebApplication. Ensure the host uses WebApplication.CreateBuilder.");
         }
 
         var pathBase = NormalizePathBase(options.PathBase);
-        var fallbackPattern = $"{pathBase.TrimStart('/')}/{{*path:nonfile}}";
+        var studioContentPrefix = $"{pathBase}/_content";
 
-        app.UseWhen(
-            ctx => ctx.Request.Path.StartsWithSegments(pathBase),
-            studioBranch =>
+        // Package _content assets stay at /_content while index.html uses <base href="/studio/">.
+        app.Use(async (context, next) =>
+        {
+            var requestPath = context.Request.Path.Value;
+            if (requestPath?.StartsWith(studioContentPrefix, StringComparison.OrdinalIgnoreCase) == true)
             {
-                studioBranch.UseBlazorFrameworkFiles(pathBase);
-                studioBranch.UseStaticFiles();
-            });
+                context.Request.Path = new PathString("/_content" + requestPath[studioContentPrefix.Length..]);
+            }
 
-        webApp.MapGet(pathBase, () => Results.Redirect(pathBase + "/"));
-        webApp.MapFallbackToFile(fallbackPattern, "index.html");
+            await next();
+        });
+
+        return app;
+    }
+
+    public static IApplicationBuilder UseBioTraceElsaAbpStudioFallback(this IApplicationBuilder app)
+    {
+        var options = app.ApplicationServices
+            .GetRequiredService<IOptions<BioTraceElsaAbpStudioOptions>>()
+            .Value;
+
+        if (!options.Enabled || app is not WebApplication webApp)
+        {
+            return app;
+        }
+
+        var pathBase = NormalizePathBase(options.PathBase);
+        var assetPathBase = pathBase.TrimStart('/');
+
+        // WASM assets under studio/_framework are served by UseStaticFiles + MapStaticAssets.
+        webApp.MapGroup(pathBase).MapFallbackToFile(
+            "{*path:nonfile}",
+            $"{assetPathBase}/index.html");
 
         return app;
     }

@@ -7,6 +7,8 @@
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
     <RootNamespace>BioTrace.Elsa.Abp.Studio.Client</RootNamespace>
+    <!-- Align static web assets with ElsaStudio:PathBase (default /studio). -->
+    <StaticWebAssetBasePath>studio</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>

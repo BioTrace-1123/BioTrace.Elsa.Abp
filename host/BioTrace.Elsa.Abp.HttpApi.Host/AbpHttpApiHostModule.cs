@@ -315,6 +315,7 @@ public class AbpHttpApiHostModule : AbpModule
 
         app.UseAbpRequestLocalization();
         app.UseCorrelationId();
+        app.UseBioTraceElsaAbpStudioHost();
         app.UseStaticFiles();
         app.MapAbpStaticAssets();
         app.UseRouting();
@@ -343,7 +344,7 @@ public class AbpHttpApiHostModule : AbpModule
             options.OAuthScopes("BioTrace_Elsa_Abp");
         });
         app.UseAbpSerilogEnrichers();
-        app.UseBioTraceElsaAbpStudioHost();
+        app.UseBioTraceElsaAbpStudioFallback();
         app.UseConfiguredEndpoints();
     }
 
