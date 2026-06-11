@@ -46,7 +46,7 @@ namespace BioTrace.Elsa.Abp;
 
 [DependsOn(
     typeof(AbpHttpApiModule),
-    typeof(ElsaAbpAspNetCoreModule),
+    typeof(ElsaAbpHostPostgreSqlModule),
     typeof(ElsaAbpMultiTenancyModule),
     typeof(EntityFrameworkCore.AbpEntityFrameworkCoreModule),
     typeof(AbpEntityFrameworkCorePostgreSqlModule),

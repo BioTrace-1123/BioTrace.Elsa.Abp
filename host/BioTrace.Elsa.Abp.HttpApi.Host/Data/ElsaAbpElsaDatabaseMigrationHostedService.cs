@@ -1,5 +1,5 @@
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.Persistence.EFCore.Modules.Management;
+using Elsa.Persistence.EFCore.Modules.Runtime;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using Volo.Abp.DependencyInjection;
