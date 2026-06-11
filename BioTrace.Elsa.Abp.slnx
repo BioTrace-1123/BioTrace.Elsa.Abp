@@ -13,6 +13,9 @@
         <Project Path="src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj" />
         <Project Path="src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Studio.BlazorWasm/BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Studio.Client/BioTrace.Elsa.Abp.Studio.Client.csproj" />
+        <Project Path="src/BioTrace.Elsa.Abp.Studio.AspNetCore/BioTrace.Elsa.Abp.Studio.AspNetCore.csproj" />
     </Folder>
     
     <Folder Name="/test/">
@@ -26,6 +29,5 @@
 
     <Folder Name="/host/">
         <Project Path="host/BioTrace.Elsa.Abp.HttpApi.Host/BioTrace.Elsa.Abp.HttpApi.Host.csproj" />
-        <Project Path="host/BioTrace.Elsa.Abp.ElsaStudio/BioTrace.Elsa.Abp.ElsaStudio.csproj" />
     </Folder>
 </Solution>

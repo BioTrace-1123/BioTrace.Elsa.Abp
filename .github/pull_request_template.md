@@ -19,7 +19,7 @@
 
 - [ ] `dotnet build BioTrace.Elsa.Abp.slnx`
 - [ ] `dotnet test BioTrace.Elsa.Abp.slnx`
-- [ ] 已在宿主应用中验证（如适用）
+- [ ] 已在调用方应用中验证（如适用）
 
 ## 发布说明（仅 release/hotfix 合并到 main 时填写）
 

@@ -9,30 +9,47 @@ alwaysApply: false
 ## 与 ABP 的关系
 
 - 使用 **原生 Elsa 3.x** NuGet，不依赖 `Volo.Abp.Elsa.*`（Elsa Pro）。
-- Elsa **不**映射到 `AbpDbContext`；持久化使用 Elsa 自带 Management/Runtime DbContext 与迁移。
-- `OnApplicationInitialization` 中的 Elsa 中间件（`UseElsaWorkflows` / `UseWorkflowsApi`）**仅写在 Host**，可复用模块只注册 `AddElsa` 服务。
+- Elsa **不**映射到 `AbpDbContext`；持久化使用 Elsa 自带 Management/Runtime DbContext。
+- `OnApplicationInitialization` 中的 Elsa 中间件（`UseElsaWorkflows` / `UseWorkflowsApi`）**仅写在调用方应用**，可复用模块只注册 `AddElsa` 服务。
 
 ## NuGet 版本（必须成套）
 
-所有 `Elsa*` / `Elsa.EntityFrameworkCore.*` / `Elsa.Http` / `Elsa.Workflows.Api` 使用 **同一版本线**（当前为 **3.5.3**）。
+所有 `Elsa*` / `Elsa.Persistence.EFCore.*` / `Elsa.Http` / `Elsa.Workflows.Api` 使用 **同一版本线**（当前为 **3.7.0**，见根目录 `Directory.Build.props` 中 `ElsaPackageVersion`）。Elsa 版本升级与库表迁移由调用方参照 Elsa 官方文档自行处理，本模块文档不提供升级迁移指南。
 
-原因：`Elsa` 元包可能已到 3.7，而 `Elsa.EntityFrameworkCore.PostgreSql` 等卫星包发布较慢；混用会导致还原失败或扩展方法/API 不兼容。升级时先在 nuget.org 确认 **全部** 相关包均有目标版本，再一次性升级。
+## 持久化 Provider（调用方自选）
+
+- `BioTrace.Elsa.Abp.AspNetCore` **不**引用 `Elsa.Persistence.EFCore.PostgreSql` 等 Provider 包。
+- 调用方引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并继承 `ElsaAbpAspNetCoreModule`，重写 **`ConfigureElsaPersistence`**。
+- 未重写时启动抛出 `Abp:ElsaPersistenceNotConfigured`。
+- 演示项目：[`ElsaAbpHostPostgreSqlModule`](host/BioTrace.Elsa.Abp.HttpApi.Host/ElsaAbpHostPostgreSqlModule.cs)。
 
 ## 连接串
 
-- ABP 业务库：`ConnectionStrings:Abp`（`AbpDbProperties.ConnectionStringName`）。
-- Elsa 工作流库：`ConnectionStrings:Elsa`（`ElsaAbpDbProperties.ConnectionStringName`），**消费者必填**，与 Abp 分离。
+- ABP 业务库：`ConnectionStrings:Default`（`AbpDbProperties.ConnectionStringName`）。
+- Elsa 工作流库：`ConnectionStrings:Elsa`（`ElsaAbpDbProperties.ConnectionStringName`），**消费者必填**，与 Default 业务库分离。
 - 未配置 Elsa 连接串时抛出 `Abp:ElsaConnectionStringNotConfigured`。
+- Elsa 连接串在 **运行时** 从 `IConfiguration` 解析（`ResolveElsaConnectionString`），便于集成测覆盖 `ConnectionStrings:Elsa`。
 
 ## 扩展点（可复用模块）
 
-- `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / `ConfigureElsaSwagger` / `ConfigureElsaActivities` 为 **virtual**。
-- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableElsaSwagger`、`EnableHttpActivities`）。
+- `ElsaAbpAspNetCoreModule.ConfigureElsa` / `ConfigureElsaCore` / **`ConfigureElsaPersistence`** / `ConfigureElsaSwagger` / `ConfigureElsaActivities` 为 **virtual**。
+- 选项类型：`ElsaAbpOptions`（`RunMigrations`、`EnableWorkflowsApi`、`EnableElsaSwagger`、`EnableHttpActivities`、`EnableMultiTenancy` 等）。
 - 双 Swagger：ABP `/swagger/v1/swagger.json`；Elsa `/swagger/elsa/openapi.json`（`EnableElsaSwagger`，避免与 Swashbuckle 路径冲突）。
 - 自定义 Activity 放在 Application 层，用 `AddActivitiesFrom<AbpApplicationModule>()` 注册。
 
-## 宿主集成清单
+## 多租户（可选）
 
-1. `[DependsOn(typeof(ElsaAbpAspNetCoreModule))]`
+- 引用 **`ElsaAbpMultiTenancyModule`** + ABP TenantManagement（EF + Application）。
+- `ElsaAbpMultiTenancyModule.PreConfigureServices` 设置 `EnableMultiTenancy=true`；自定义 Elsa 模块应 `[DependsOn(typeof(ElsaAbpMultiTenancyModule))]` 以保证 `AddElsa` 前生效。
+- 设置 `MultiTenancyConsts.IsEnabled = true` 与 `Elsa:EnableMultiTenancy: true`。
+- **`ITenantAccessor` 须在 `AddElsa` 之后** 由 `ConfigureElsaMultiTenancyServices`（及 `PostConfigureServices`）注册，避免被 Elsa `MultitenancyFeature` 覆盖。
+- **共享 Elsa 库**：单一 `ConnectionStrings:Elsa`，Elsa EF 按 `TenantId` 全局过滤器隔离；**不**启用 Elsa 自带 Tenant CRUD endpoints。
+- **ID 映射**：ABP Host（`ICurrentTenant.Id == null`）→ Elsa `""`；ABP 租户 `Guid` → Elsa `guid.ToString("D")`（与 JWT `tenantid` 一致）。
+- 核心类型：`ElsaAbpTenantMapper`、`ElsaAbpTenantsProvider`、`ElsaAbpCurrentTenantResolver`、`ElsaAbpTenantAccessor`、`ElsaAbpMultiTenancyMiddleware`。
+- 管道：`UseMultiTenancy()` → `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
+
+## 调用方集成清单
+
+1. 自定义模块继承 `ElsaAbpAspNetCoreModule` 并实现 `ConfigureElsaPersistence`（多租户时 `[DependsOn(typeof(ElsaAbpMultiTenancyModule))]`）
 2. 配置 `ConnectionStrings:Elsa` 与 `Elsa` 节点
-3. Host 管道中 `app.UseElsaWorkflows()`
+3. 调用方管道：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `app.UseElsaWorkflows()`

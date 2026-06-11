@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using BioTrace.Elsa.Abp.Elsa;
 using BioTrace.Elsa.Abp.Fixtures;
 using BioTrace.Elsa.Abp.Helpers;
+using BioTrace.Elsa.Abp.MultiTenancy;
 using BioTrace.Elsa.Abp.Permissions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Shouldly;
@@ -29,7 +30,8 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
         await ElsaAbpWebApplicationFactory.EnsurePostgresReadyAsync();
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {
-            AllowAutoRedirect = false
+            AllowAutoRedirect = false,
+            HandleCookies = false
         });
         _tokenClient = new OpenIddictTokenClient(_client);
     }
@@ -49,7 +51,9 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task Designer_token_should_not_contain_wildcard_in_jwt()
     {
-        var token = await _tokenClient.RequestPasswordTokenAsync("designer");
+        var token = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantADesignerUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
 
         var permissionClaims = JwtPayloadReader.ReadClaims(token)
             .Where(c => string.Equals(c.Type, "permissions", StringComparison.OrdinalIgnoreCase))
@@ -65,14 +69,20 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     public async Task Admin_should_get_wildcard_permissions_from_current_user()
     {
         var token = await _tokenClient.RequestPasswordTokenAsync("admin");
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, "/identity/users/me", token);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/identity/users/me",
+            token,
+            ElsaAbpMultiTenancySeedData.TenantAName);
 
         var response = await _client.SendAsync(request);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var currentUser = await response.Content.ReadFromJsonAsync<ElsaAbpCurrentUserDto>();
         currentUser.ShouldNotBeNull();
-        currentUser!.Permissions.ShouldContain(ElsaApiPermissionNames.Wildcard);
+        currentUser!.TenantId.ShouldBeNull();
+        currentUser.TenantName.ShouldBeNull();
+        currentUser.Permissions.ShouldContain(ElsaApiPermissionNames.Wildcard);
     }
 
     [Fact]
@@ -89,8 +99,14 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task Designer_should_get_read_only_permissions()
     {
-        var token = await _tokenClient.RequestPasswordTokenAsync("designer");
-        using var request = CreateAuthorizedRequest(HttpMethod.Get, "/identity/users/me", token);
+        var token = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantADesignerUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/identity/users/me",
+            token,
+            ElsaAbpMultiTenancySeedData.TenantAName);
 
         var response = await _client.SendAsync(request);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -104,10 +120,33 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Tenant_admin_should_read_commit_strategy_descriptors()
+    {
+        var token = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantAAdminUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Get,
+            "/elsa/api/descriptors/commit-strategies/workflows",
+            token,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+
+        var response = await _client.SendAsync(request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Designer_should_be_forbidden_on_create_workflow_definition()
     {
-        var token = await _tokenClient.RequestPasswordTokenAsync("designer");
-        using var request = CreateAuthorizedRequest(HttpMethod.Post, "/elsa/api/workflow-definitions", token);
+        var token = await _tokenClient.RequestPasswordTokenAsync(
+            ElsaAbpMultiTenancySeedData.TenantADesignerUserName,
+            ElsaAbpMultiTenancySeedData.TenantAName);
+        using var request = CreateAuthorizedRequest(
+            HttpMethod.Post,
+            "/elsa/api/workflow-definitions",
+            token,
+            ElsaAbpMultiTenancySeedData.TenantAName);
         request.Content = JsonContent.Create(new
         {
             name = "integration-test-definition",
@@ -124,10 +163,20 @@ public class ElsaAbpPermissionBridgeIntegrationTests : IAsyncLifetime
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
-    private static HttpRequestMessage CreateAuthorizedRequest(HttpMethod method, string url, string token)
+    private static HttpRequestMessage CreateAuthorizedRequest(
+        HttpMethod method,
+        string url,
+        string token,
+        string? tenantName = null)
     {
         var request = new HttpRequestMessage(method, url);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        if (!string.IsNullOrWhiteSpace(tenantName))
+        {
+            request.Headers.TryAddWithoutValidation("__tenant", tenantName);
+        }
+
         return request;
     }
 }

@@ -16,22 +16,19 @@ on:
     tags:
       - "v*.*.*"
 
-permissions:
-  contents: read
-
 jobs:
   pack-and-publish:
     runs-on: ubuntu-latest
-    env:
-      NUGET_SOURCE: https://api.nuget.org/v3/index.json
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
 
@@ -67,22 +64,28 @@ jobs:
           dotnet pack src/BioTrace.Elsa.Abp.Application/BioTrace.Elsa.Abp.Application.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.HttpApi/BioTrace.Elsa.Abp.HttpApi.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.HttpApi.Client/BioTrace.Elsa.Abp.HttpApi.Client.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
-          dotnet pack src/BioTrace.Elsa.Abp.EntityFrameworkCore/BioTrace.Elsa.Abp.EntityFrameworkCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Studio.BlazorWasm/BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
+          dotnet pack src/BioTrace.Elsa.Abp.Studio.AspNetCore/BioTrace.Elsa.Abp.Studio.AspNetCore.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
           dotnet pack src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj -c Release --no-build -p:PackageVersion=${{ steps.resolve_version.outputs.version }} -o ./artifacts/nuget
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nuget-packages-${{ steps.resolve_version.outputs.version }}
           path: artifacts/nuget
           if-no-files-found: error
 
+      - name: NuGet login (OIDC)
+        uses: NuGet/login@v1
+        id: nuget_login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
       - name: Push to NuGet
-        if: env.NUGET_API_KEY != ''
         shell: bash
         run: |
           dotnet nuget push "artifacts/nuget/*.nupkg" \
-            --api-key "${NUGET_API_KEY}" \
-            --source "${NUGET_SOURCE}" \
+            --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
+            --source "https://api.nuget.org/v3/index.json" \
             --skip-duplicate

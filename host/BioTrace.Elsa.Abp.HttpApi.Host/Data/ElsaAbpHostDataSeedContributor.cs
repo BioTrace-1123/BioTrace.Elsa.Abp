@@ -42,24 +42,12 @@ public class ElsaAbpHostDataSeedContributor : IDataSeedContributor, ITransientDe
         using var uow = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
 
         var adminRole = await SeedRoleAsync("admin", "Administrator");
-        var designerRole = await SeedRoleAsync("designer", "Workflow Designer");
-        var operatorRole = await SeedRoleAsync("operator", "Workflow Operator");
 
         await SeedUserAsync("admin", "admin@localhost", "1q2w3E*", adminRole.Name);
-        await SeedUserAsync("designer", "designer@localhost", "1q2w3E*", designerRole.Name);
-        await SeedUserAsync("operator", "operator@localhost", "1q2w3E*", operatorRole.Name);
 
         await GrantRolePermissionsAsync(adminRole.Name,
             AbpElsaPermissions.Admin,
             AbpElsaPermissions.NotReadOnly);
-        await GrantRolePermissionsAsync(designerRole.Name,
-            AbpElsaPermissions.WorkflowDefinitions.Read,
-            AbpElsaPermissions.WorkflowInstances.Read);
-        await GrantRolePermissionsAsync(operatorRole.Name,
-            AbpElsaPermissions.WorkflowDefinitions.Read,
-            AbpElsaPermissions.WorkflowInstances.Read,
-            AbpElsaPermissions.WorkflowInstances.Execute,
-            AbpElsaPermissions.WorkflowInstances.Cancel);
 
         await uow.CompleteAsync();
     }

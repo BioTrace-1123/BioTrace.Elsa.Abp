@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Volo.Abp.Authorization.Permissions;
 using Volo.Abp.DependencyInjection;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.Security.Claims;
 using Volo.Abp.Users;
@@ -18,6 +19,7 @@ public class ElsaAbpEffectivePermissionsProvider : IElsaAbpEffectivePermissionsP
     private readonly IPermissionChecker _permissionChecker;
     private readonly IElsaAbpPermissionMapper _permissionMapper;
     private readonly ICurrentUser _currentUser;
+    private readonly ICurrentTenant _currentTenant;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IOptions<ElsaAbpOptions> _options;
 
@@ -26,6 +28,7 @@ public class ElsaAbpEffectivePermissionsProvider : IElsaAbpEffectivePermissionsP
         IPermissionChecker permissionChecker,
         IElsaAbpPermissionMapper permissionMapper,
         ICurrentUser currentUser,
+        ICurrentTenant currentTenant,
         IHttpContextAccessor httpContextAccessor,
         IOptions<ElsaAbpOptions> options)
     {
@@ -33,6 +36,7 @@ public class ElsaAbpEffectivePermissionsProvider : IElsaAbpEffectivePermissionsP
         _permissionChecker = permissionChecker;
         _permissionMapper = permissionMapper;
         _currentUser = currentUser;
+        _currentTenant = currentTenant;
         _httpContextAccessor = httpContextAccessor;
         _options = options;
     }
@@ -93,9 +97,23 @@ public class ElsaAbpEffectivePermissionsProvider : IElsaAbpEffectivePermissionsP
         return result.ToList();
     }
 
-    protected virtual Task<bool> IsAdminGrantedAsync(CancellationToken cancellationToken)
+    protected virtual async Task<bool> IsAdminGrantedAsync(CancellationToken cancellationToken)
     {
-        return _permissionChecker.IsGrantedAsync(AbpElsaPermissions.Admin);
+        // Host users may pass __tenant to view a tenant while remaining host-side; evaluate Admin at host scope.
+        if (IsHostUser())
+        {
+            using (_currentTenant.Change(null))
+            {
+                return await _permissionChecker.IsGrantedAsync(AbpElsaPermissions.Admin);
+            }
+        }
+
+        return await _permissionChecker.IsGrantedAsync(AbpElsaPermissions.Admin);
+    }
+
+    protected virtual bool IsHostUser()
+    {
+        return _currentUser.IsAuthenticated && !_currentUser.TenantId.HasValue;
     }
 
     protected virtual void AddGrantedNames(

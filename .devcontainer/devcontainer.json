@@ -6,7 +6,7 @@
   "remoteUser": "vscode",
   "forwardPorts": [44388, 44389],
   "portsAttributes": {
-    "44388": { "label": "HttpApi.Host HTTPS", "onAutoForward": "notify" },
+    "44388": { "label": "HttpApi.Host + Elsa Studio (/studio)", "onAutoForward": "notify" },
     "44389": { "label": "HttpApi.Host HTTP" }
   },
   "mounts": [
@@ -16,31 +16,22 @@
   "remoteEnv": {
     "ASPNETCORE_ENVIRONMENT": "Development",
     "INTEGRATION_TEST_POSTGRES_HOST": "postgres",
-    "ConnectionStrings__Abp": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
+    "ConnectionStrings__Default": "Host=postgres;Port=5432;Database=BioTrace_Abp;Username=postgres;Password=postgres",
     "ConnectionStrings__Elsa": "Host=postgres;Port=5432;Database=BioTrace_Elsa;Username=postgres;Password=postgres",
     "PATH": "/home/vscode/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
     "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
   },
-  "postCreateCommand": "bash .devcontainer/setup-git.sh && dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx",
+  "postCreateCommand": "bash .devcontainer/setup-git.sh && bash .devcontainer/setup-playwright.sh && dotnet tool restore && dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx && npm install --prefix host/BioTrace.Elsa.Abp.HttpApi.Host",
   "postStartCommand": "bash .devcontainer/setup-git.sh",
   "customizations": {
     "vscode": {
       "extensions": [
-        "anysphere.csharp",
         "ms-dotnettools.csdevkit",
         "ms-dotnettools.csharp",
         "ms-azuretools.vscode-docker"
       ],
       "settings": {
-        "dotnet.defaultSolution": "BioTrace.Elsa.Abp.slnx",
-        "git.autorefresh": true,
-        "git.refreshOnWindowFocus": true,
-        "git.autofetch": false,
-        "files.watcherExclude": {
-          "**/.git/objects/**": true,
-          "**/bin/**": true,
-          "**/obj/**": true
-        }
+        "dotnet.defaultSolution": "BioTrace.Elsa.Abp.slnx"
       }
     }
   }

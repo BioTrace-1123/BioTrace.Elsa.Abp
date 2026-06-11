@@ -2,17 +2,24 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build-elsa-studio",
-      "command": "dotnet",
-      "type": "process",
-      "args": [
-        "build",
-        "${workspaceFolder}/host/BioTrace.Elsa.Abp.ElsaStudio/BioTrace.Elsa.Abp.ElsaStudio.csproj",
-        "/property:GenerateFullPaths=true",
-        "/consoleloggerparameters:NoSummary;ForceNoAlign"
+      "label": "check-host-ports",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/check-dev-ports.sh host",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "prelaunch-host",
+      "dependsOn": [
+        "check-host-ports",
+        "build-host"
       ],
-      "group": "build",
-      "problemMatcher": "$msCompile"
+      "dependsOrder": "sequence",
+      "problemMatcher": []
     },
     {
       "label": "build-host",
@@ -64,6 +71,28 @@
       "command": "${workspaceFolder}/scripts/test-integration.sh",
       "group": "test",
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "test-e2e",
+      "type": "shell",
+      "command": "${workspaceFolder}/scripts/test-e2e.sh",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "ef-database-update-all-abp-contexts",
+      "type": "shell",
+      "command": "set -euo pipefail && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext",
+      "options": {
+        "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "focus": true,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
     }
   ]
 }

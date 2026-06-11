@@ -1,0 +1,57 @@
+---
+description: "Playwright MCP 浏览器验证 — UI/Elsa Studio/Host 改动后 Agent 用 MCP 验证结果"
+globs:
+  - "host/**"
+  - "src/BioTrace.Elsa.Abp.Studio.*/**"
+alwaysApply: false
+---
+
+# Playwright MCP 验证（方案 A）
+
+Dev Container 已配置 `.cursor/mcp.json` 中的 **playwright** MCP。改动 Elsa Studio、Host 管道或影响 `/studio` 的行为后，Agent **应**用 Playwright MCP 做端到端验证，而不仅依赖 `dotnet test`。
+
+正式可 CI 的套件见 [`test/BioTrace.Elsa.Abp.E2E`](../../test/BioTrace.Elsa.Abp.E2E/)（`./scripts/test-e2e.sh`）；MCP 用于开发时快速冒烟，检查清单应与 E2E spec 保持一致。
+
+## 前置条件
+
+1. **MCP 已连接**：Cursor Settings → MCP → `playwright` 为绿色且 tools 可用；否则提示用户 Reload Window 或重建 Dev Container。
+2. **Host 已运行**（容器内）：
+   ```bash
+   dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
+   ```
+3. **基准 URL**（HTTPS 自签，MCP 已 `--ignore-https-errors`）：
+   - Host / Swagger：`https://localhost:44388`
+   - Elsa Studio：`https://localhost:44388/studio`
+   - ABP 登录：`https://localhost:44388/Account/Login`
+
+## 演示账户（Development 种子）
+
+| 用户 | 密码 | 租户 | 用途 |
+|------|------|------|------|
+| `admin` | `1q2w3E*` | Host | `Abp.Elsa.Admin` → Elsa `*` |
+| `tenant-a-admin` | `1q2w3E*` | `tenant-a` | 租户管理员，CRUD/执行/取消 |
+| `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读 Definitions + Instances |
+| `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离验证 |
+
+租户登录 URL 示例：`https://localhost:44388/Account/Login?__tenant=tenant-a`
+
+## 推荐验证流程
+
+1. 用 Playwright MCP **navigate** 到目标页（Studio 或 Swagger）。
+2. 如需登录：填写用户名/密码，提交；租户场景带上 `__tenant`。
+3. 用 **snapshot** 确认关键 UI（菜单、工作流列表、按钮禁用/启用）。
+4. 涉及 API 行为时：在 Studio 内操作或在 Swagger 中带 Bearer Token 调用 `/elsa/api/...`。
+5. 失败时 **截图** 并说明复现步骤；勿在未启动 Host 时误判为代码缺陷。
+
+## 多租户检查清单
+
+- Host 用户 `admin` 在 Host 视图 vs 选择 `Tenant A` 后列表应不同。
+- 租户用户 Token 须含 `tenantid` Claim（登录页须选/填租户）。
+
+## 与自动化测试的分工
+
+- **Playwright MCP**：开发时 Studio/UI、OIDC 登录流快速冒烟。
+- **`test/BioTrace.Elsa.Abp.E2E`**：可重复的 Playwright 套件（OIDC + Studio 全链路），CI `e2e-tests` job。
+- **`dotnet test --filter Category=Integration`**：API、OpenIddict、多租户隔离（无需浏览器）。
+
+三者互补；UI 相关改动至少完成 MCP 冒烟或 `./scripts/test-e2e.sh` 相关用例。

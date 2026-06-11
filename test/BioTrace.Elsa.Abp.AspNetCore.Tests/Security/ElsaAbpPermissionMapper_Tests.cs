@@ -23,6 +23,8 @@ public class ElsaAbpPermissionMapper_Tests
         var result = _mapper.MapToElsaPermissions([AbpElsaPermissions.WorkflowDefinitions.Read]);
 
         result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitions.Read);
+        result.ShouldContain(ElsaApiPermissionNames.StudioDescriptors.ReadCommitStrategies);
+        result.ShouldContain(ElsaApiPermissionNames.StudioDescriptors.ReadActivityDescriptors);
     }
 
     [Fact]
@@ -34,5 +36,16 @@ public class ElsaAbpPermissionMapper_Tests
         result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitions.Write);
         result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitions.Publish);
         result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitions.Delete);
+        result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitionActions.Execute);
+    }
+
+    [Fact]
+    public void WorkflowDefinitions_Write_should_map_studio_action_claims()
+    {
+        var result = _mapper.MapToElsaPermissions([AbpElsaPermissions.WorkflowDefinitions.Write]);
+
+        result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitions.Write);
+        result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitionActions.Refresh);
+        result.ShouldContain(ElsaApiPermissionNames.WorkflowDefinitionActions.Reload);
     }
 }

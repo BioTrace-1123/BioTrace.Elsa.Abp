@@ -18,6 +18,7 @@ public class OpenIddictTokenClient
 
     public virtual async Task<string> RequestPasswordTokenAsync(
         string username,
+        string? tenantName = null,
         string password = DefaultPassword,
         CancellationToken cancellationToken = default)
     {
@@ -33,6 +34,11 @@ public class OpenIddictTokenClient
                 ["scope"] = "BioTrace_Elsa_Abp openid profile roles"
             })
         };
+
+        if (!string.IsNullOrWhiteSpace(tenantName))
+        {
+            request.Headers.TryAddWithoutValidation("__tenant", tenantName);
+        }
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);

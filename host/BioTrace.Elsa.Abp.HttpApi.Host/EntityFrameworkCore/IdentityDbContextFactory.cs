@@ -25,6 +25,7 @@ public class IdentityDbContextFactory : IDesignTimeDbContextFactory<IdentityDbCo
             .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile("appsettings.json", optional: false)
             .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
             .Build();
     }
 }

@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres_BioTrace_test
+    hostname: BioTrace-test-docker
+    restart: unless-stopped
+    ports:
+      - "55432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: BioTrace@TestPg2026
+      TZ: Asia/Shanghai
+    volumes:
+      - postgres_BioTrace_test_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      BioTrace_test:
+        aliases:
+          - BioTrace-test-docker
+
+networks:
+  BioTrace_test:
+    name: BioTrace_test
+
+volumes:
+  postgres_BioTrace_test_data:

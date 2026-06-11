@@ -24,4 +24,13 @@ public class ElsaAbpOptions
 
     /// <summary>Disables Elsa endpoint security (development only).</summary>
     public bool DisableElsaEndpointSecurity { get; set; }
+
+    /// <summary>Enables Elsa <c>UseTenants</c> and ABP tenant bridge (requires ABP multi-tenancy).</summary>
+    public bool EnableMultiTenancy { get; set; }
+
+    /// <summary>Elsa tenant id for ABP Host context (<see cref="ICurrentTenant.Id"/> is null).</summary>
+    public string HostTenantId { get; set; } = string.Empty;
+
+    /// <summary>Claim type used to resolve tenant from authenticated user (OpenIddict JWT).</summary>
+    public string TenantIdClaimType { get; set; } = "tenantid";
 }
