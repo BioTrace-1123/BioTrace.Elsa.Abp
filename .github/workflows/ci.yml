@@ -126,8 +126,10 @@ jobs:
             host/BioTrace.Elsa.Abp.HttpApi.Host/package-lock.json
             test/BioTrace.Elsa.Abp.E2E/package-lock.json
 
-      - name: Trust development HTTPS certificate
-        run: dotnet dev-certs https --trust
+      - name: Ensure development HTTPS certificate
+        # Do not use --trust: it exits 4 on headless Ubuntu CI (no system trust store).
+        # Playwright webServer/use already set ignoreHTTPSErrors; Kestrel only needs the cert file.
+        run: dotnet dev-certs https
 
       - name: Restore and build
         run: |

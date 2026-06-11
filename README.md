@@ -422,7 +422,7 @@ npm run show-report
 | `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读权限 |
 | `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离 |
 
-CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright Chromium）；失败时上传 `playwright-report` 构件。
+CI：`e2e-tests` job（Postgres + `dotnet dev-certs https` + Playwright Chromium，`ignoreHTTPSErrors` 无需系统信任）；失败时上传 `playwright-report` 构件。
 
 演示项目的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效（集成测专用，E2E 走真实 OIDC）。
 
