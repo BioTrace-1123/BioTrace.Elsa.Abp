@@ -15,7 +15,6 @@ if [ -n "${SSH_AUTH_SOCK:-}" ] && [ -S "${SSH_AUTH_SOCK}" ]; then
 Host github.com
   HostName github.com
   User git
-  IdentitiesOnly yes
 EOF
     chmod 600 "${HOME}/.ssh/config"
   fi
