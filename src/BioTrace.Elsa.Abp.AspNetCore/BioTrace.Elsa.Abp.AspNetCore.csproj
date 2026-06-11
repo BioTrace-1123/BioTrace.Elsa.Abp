@@ -14,6 +14,7 @@
     <PackageReference Include="Elsa.EntityFrameworkCore" Version="3.5.3" />
     <PackageReference Include="Elsa.EntityFrameworkCore.PostgreSql" Version="3.5.3" />
     <PackageReference Include="Elsa.Http" Version="3.5.3" />
+    <PackageReference Include="Elsa.Scheduling" Version="3.5.3" />
     <PackageReference Include="Elsa.Tenants" Version="3.5.3" />
     <PackageReference Include="Elsa.Workflows.Api" Version="3.5.3" />
     <PackageReference Include="FastEndpoints.Swagger" Version="6.1.0" />

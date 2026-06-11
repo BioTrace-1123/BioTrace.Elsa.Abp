@@ -118,6 +118,8 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         {
             elsa.UseHttp();
         }
+
+        elsa.UseScheduling();
     }
 
     protected virtual void ConfigureElsaSwagger(IModule elsa, ElsaAbpOptions options)

@@ -68,7 +68,13 @@ public static class BioTraceElsaAbpStudioExtensions
         var backendApiConfig = new BackendApiConfig
         {
             ConfigureBackendOptions = backendOptions =>
-                configuration.GetSection("ElsaStudio:Backend").Bind(backendOptions),
+            {
+                configuration.GetSection("ElsaStudio:Backend").Bind(backendOptions);
+                backendOptions.Url = new Uri(ResolveAbsoluteBackendUrl(
+                    backendOptions.Url?.ToString(),
+                    configuration,
+                    builder.HostEnvironment.BaseAddress));
+            },
             ConfigureHttpClientBuilder = httpOptions =>
             {
                 httpOptions.AuthenticationHandler = typeof(OidcAuthenticatingApiHttpMessageHandler);
@@ -142,5 +148,37 @@ public static class BioTraceElsaAbpStudioExtensions
             .AddHttpMessageHandler<AbpTenantHeaderDelegatingHandler>();
 
         services.AddScoped<ICreateWorkflowDialogComponentProvider, AbpCreateWorkflowDialogComponentProvider>();
+    }
+
+    internal static string ResolveAbsoluteBackendUrl(
+        string? configuredUrl,
+        IConfiguration configuration,
+        string hostBaseAddress)
+    {
+        var url = string.IsNullOrWhiteSpace(configuredUrl) ? "/elsa/api" : configuredUrl.Trim();
+
+        if (Uri.TryCreate(url, UriKind.Absolute, out var absolute) && absolute.IsAbsoluteUri)
+        {
+            return absolute.ToString().TrimEnd('/');
+        }
+
+        var authority = configuration["ElsaStudio:Authentication:OpenIdConnect:Authority"]?.TrimEnd('/');
+        string origin;
+        if (!string.IsNullOrWhiteSpace(authority) && Uri.TryCreate(authority, UriKind.Absolute, out var authorityUri))
+        {
+            origin = authorityUri.GetLeftPart(UriPartial.Authority);
+        }
+        else if (Uri.TryCreate(hostBaseAddress, UriKind.Absolute, out var baseUri))
+        {
+            origin = baseUri.GetLeftPart(UriPartial.Authority);
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                "ElsaStudio:Backend:Url is relative but no absolute Authority or host base address is available.");
+        }
+
+        var path = url.StartsWith('/') ? url : "/" + url;
+        return (origin + path).TrimEnd('/');
     }
 }
