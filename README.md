@@ -15,10 +15,10 @@
 - .NET 10
 - ABP 10.4（DDD 模块模板）
 - Entity Framework Core
-- [Elsa Workflows](https://elsaworkflows.io/) **3.5.3**（原生集成，非 ABP Elsa Pro）
-- PostgreSQL（Elsa 持久化；与 ABP 业务库分离）
+- [Elsa Workflows](https://elsaworkflows.io/) **3.7.0**（原生集成，非 ABP Elsa Pro）
+- Entity Framework Core 持久化（Provider 由宿主自选；演示 Host 使用 PostgreSQL）
 
-> Elsa 核心包最新为 3.7.x，但 `Elsa.EntityFrameworkCore.PostgreSql` 目前最高为 **3.5.3**，故本模块统一锁定 **3.5.3** 以避免版本冲突。
+> Elsa 3.6+ 起 EF 包重命名为 `Elsa.Persistence.EFCore.*`。`BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；宿主需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。
 
 ## 解决方案结构
 
@@ -29,7 +29,7 @@ src/
   BioTrace.Elsa.Abp.Application.Contracts
   BioTrace.Elsa.Abp.Application          # 含示例 Activity（PrintMessageActivity）
   BioTrace.Elsa.Abp.EntityFrameworkCore  # ABP 业务 DbContext（连接名 Default）
-  BioTrace.Elsa.Abp.AspNetCore           # Elsa 服务注册（连接名 Elsa）
+  BioTrace.Elsa.Abp.AspNetCore           # Elsa 服务注册（连接名 Elsa；不含 EF Provider）
   BioTrace.Elsa.Abp.HttpApi
   BioTrace.Elsa.Abp.HttpApi.Client
   BioTrace.Elsa.Abp.Installer
@@ -53,9 +53,10 @@ test/
 
 引用本模块的 ABP 应用**必须**单独配置 Elsa 数据库；仅引用 NuGet/项目**不会**自动创建 Elsa 表。
 
-1. 在宿主启动模块上添加依赖：
+1. 在宿主启动模块上添加依赖（**含 EF Provider 模块**，见 [消费方指南](docs/nuget-consumer-guide.md)）：
    ```csharp
-   [DependsOn(typeof(ElsaAbpAspNetCoreModule), typeof(AbpHttpApiModule))]
+   [DependsOn(typeof(MyAppElsaPostgreSqlModule), typeof(AbpHttpApiModule))]
+   // MyAppElsaPostgreSqlModule 继承 ElsaAbpAspNetCoreModule 并重写 ConfigureElsaPersistence
    ```
 2. 在 `appsettings.json` 中配置**独立**连接串（`Default` 为 ABP 业务库，`Elsa` 为工作流库）：
    ```json
@@ -73,12 +74,12 @@ test/
    }
    ```
 3. 在宿主 `OnApplicationInitialization` 中映射 Elsa 中间件（可调用扩展方法 `app.UseElsaWorkflows()`）。
-4. （可选）在宿主模块中重写 `ElsaAbpAspNetCoreModule` 的 `ConfigureElsa` / `ConfigureElsaActivities` 以注册更多 Activity。
+4. （可选）在宿主模块中继承 `ElsaAbpAspNetCoreModule`，重写 `ConfigureElsaPersistence`（Provider）与 `ConfigureElsaActivities`（Activity）。
 5. Elsa 表由 Elsa EF 迁移维护，**不会**出现在 `AbpDbContext` 的迁移中。
 
-未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured` 业务异常。
+未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured`；未重写 `ConfigureElsaPersistence` 时抛出 `Abp:ElsaPersistenceNotConfigured`。
 
-## 安全集成（ABP OpenIddict ↔ Elsa 3.5.3）
+## 安全集成（ABP OpenIddict ↔ Elsa 3.7.0）
 
 本模块**不启用** `Elsa.Identity`，由宿主 **OpenIddict** 签发单一 JWT，同时保护 ABP API 与 Elsa Workflows API（FastEndpoints 校验 Principal 上的 `permissions` Claim）。
 
@@ -247,7 +248,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 演示宿主已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 由 **HttpApi.Host 同域 Hosted WASM** 提供，路径为 `/studio`，通过 OpenId Connect 向 Host 换 Token，再调用 Elsa Workflows API。
 
-> **版本说明**：Elsa Server 锁定 **3.5.3**；`Elsa.Studio.*` 前端使用 **3.7.0**（OpenIdConnect WASM 包自 3.7 起发布）。Api.Client 与 3.5.3 后端在演示环境中兼容。
+> **版本说明**：Elsa Server 与 Studio 前端均为 **3.7.0**（版本由仓库根目录 `Directory.Build.props` 中 `ElsaPackageVersion` 集中管理）。
 
 **前置**：PostgreSQL 已启动（见上一节）。
 

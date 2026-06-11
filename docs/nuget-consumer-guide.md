@@ -10,7 +10,7 @@
 |---|---|
 | .NET SDK | 10（见仓库根目录 `global.json`） |
 | ABP | 10.4.x |
-| 数据库 | PostgreSQL 15+（推荐） |
+| 数据库 | ABP 业务库：PostgreSQL / SQL Server 等（与宿主 ABP 配置一致）；Elsa 工作流库：由所选 `Elsa.Persistence.EFCore.{Provider}` 决定（演示 Host 使用 PostgreSQL 15+） |
 | 认证 | OpenIddict（本模块不启用 `Elsa.Identity`，由宿主 JWT 统一保护 ABP 与 Elsa API） |
 | 权限 | ABP Permission Management（角色/用户授权 + 请求时映射到 Elsa `permissions` Claim） |
 
@@ -25,10 +25,59 @@
   <PackageReference Include="BioTrace.Elsa.Abp.AspNetCore" Version="1.0.0" />
   <PackageReference Include="BioTrace.Elsa.Abp.HttpApi" Version="1.0.0" />
   <PackageReference Include="BioTrace.Elsa.Abp.EntityFrameworkCore" Version="1.0.0" />
+  <!-- Elsa EF Provider（与 Directory.Build.props / Elsa 3.7.0 对齐，三选一） -->
+  <PackageReference Include="Elsa.Persistence.EFCore.PostgreSql" Version="3.7.0" />
 </ItemGroup>
 ```
 
-`BioTrace.Elsa.Abp.AspNetCore` 会传递依赖 `Application`、`Domain` 等下层包，一般无需逐个引用。
+`BioTrace.Elsa.Abp.AspNetCore` 会传递依赖 `Application`、`Domain` 等下层包，一般无需逐个引用。**不会**传递 PostgreSQL / SQL Server 等 Provider 包。
+
+### Elsa EF 持久化（必填）
+
+`BioTrace.Elsa.Abp.AspNetCore` 仅引用 `Elsa.Persistence.EFCore`（无 Provider）。宿主必须：
+
+1. 引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}`（版本与 [Elsa 3.7.0](https://www.nuget.org/packages/Elsa) 成套）。
+2. 创建继承 `ElsaAbpAspNetCoreModule` 的模块，重写 `ConfigureElsaPersistence`。
+3. 在宿主 `[DependsOn]` 中使用**该自定义模块**（不要仅依赖 `ElsaAbpAspNetCoreModule`）。
+
+PostgreSQL 示例（与演示 Host [`ElsaAbpHostPostgreSqlModule`](../host/BioTrace.Elsa.Abp.HttpApi.Host/ElsaAbpHostPostgreSqlModule.cs) 一致）：
+
+```csharp
+using Elsa.Extensions;
+using Elsa.Features.Services;
+using Elsa.Persistence.EFCore.Extensions;
+using Elsa.Persistence.EFCore.Modules.Management;
+using Elsa.Persistence.EFCore.Modules.Runtime;
+using Volo.Abp.Modularity;
+
+namespace MyApp;
+
+public class MyAppElsaPostgreSqlModule : ElsaAbpAspNetCoreModule
+{
+    protected override void ConfigureElsaPersistence(IModule elsa, ElsaAbpOptions options)
+    {
+        elsa.UseWorkflowManagement(management =>
+        {
+            management.UseEntityFrameworkCore(ef =>
+            {
+                ef.UsePostgreSql(ResolveElsaConnectionString);
+                ef.RunMigrations = options.RunMigrations;
+            });
+        });
+
+        elsa.UseWorkflowRuntime(runtime =>
+        {
+            runtime.UseEntityFrameworkCore(ef =>
+            {
+                ef.UsePostgreSql(ResolveElsaConnectionString);
+                ef.RunMigrations = options.RunMigrations;
+            });
+        });
+    }
+}
+```
+
+多租户时，自定义 Elsa 模块应 **`[DependsOn(typeof(ElsaAbpMultiTenancyModule))]`**（或确保 `ElsaAbpMultiTenancyModule` 先于 Elsa 模块加载），以便 `Elsa:EnableMultiTenancy` 在 `AddElsa` 之前生效。
 
 ### 可选包
 
@@ -74,8 +123,9 @@
 
 ```csharp
 [DependsOn(
-    typeof(AbpHttpApiModule),                    // 本模块 HttpApi 控制器
-    typeof(ElsaAbpAspNetCoreModule),             // Elsa 服务注册 + 权限桥接
+    typeof(AbpHttpApiModule),
+    typeof(MyAppElsaPostgreSqlModule),           // 继承 ElsaAbpAspNetCoreModule + Provider
+    typeof(ElsaAbpMultiTenancyModule),           // 可选：多租户
     typeof(AbpEntityFrameworkCoreModule),        // 本模块 ABP 业务 DbContext
     typeof(AbpEntityFrameworkCorePostgreSqlModule),
     typeof(AbpIdentityEntityFrameworkCoreModule),
@@ -222,7 +272,9 @@ Configure<AbpDbConnectionOptions>(options =>
 
 当 `Elsa:RunMigrations=true` 时，Elsa Management / Runtime 表由 **Elsa 自带 EF 迁移**写入 `ConnectionStrings:Elsa` 指向的库，**不会**出现在 `AbpDbContext` 迁移中。
 
-生产环境若希望迁移与启动解耦，可设 `RunMigrations=false`，在发布流水线中单独执行 Elsa 迁移（需自行对接 Elsa 3.5.3 迁移工具或临时启用 `RunMigrations`）。
+生产环境若希望迁移与启动解耦，可设 `RunMigrations=false`，在发布流水线中单独执行 Elsa 3.7 EF 迁移（或临时启用 `RunMigrations`）。
+
+> **从 1.0.0（Elsa 3.5.3 + 内置 PostgreSQL）升级**：升级所有 `BioTrace.Elsa.Abp.*` 包；将 `Elsa.EntityFrameworkCore.*` 换为 `Elsa.Persistence.EFCore.*` 3.7.0；添加自定义 `ConfigureElsaPersistence` 模块；对已有 Elsa 库执行 3.6+ 迁移（升级前备份）；Elsa 3.6+ 中 `TenantId = null` 表示租户无关，升级前请将原默认租户行的 `null` 迁移为 `""`（若适用）。
 
 ## 权限配置
 
@@ -409,6 +461,7 @@ RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-u
 
 | 现象 | 处理 |
 |---|---|
+| 启动报 `ElsaPersistenceNotConfigured` | 引用 `Elsa.Persistence.EFCore.{Provider}` 并继承 `ElsaAbpAspNetCoreModule` 重写 `ConfigureElsaPersistence` |
 | 启动报 `ElsaConnectionStringNotConfigured` | 在 `ConnectionStrings` 中添加名为 `Elsa` 的连接串 |
 | Elsa API 始终 401 | 检查 `UseAbpOpenIddictValidation`、JWT Audience、请求头 `Authorization: Bearer ...` |
 | Elsa API 403 但 ABP 权限已授予 | 确认 `EnablePermissionClaimsBridge=true`；检查是否授予的是 `Abp.Elsa.*` 而非仅业务权限 |
@@ -422,5 +475,5 @@ RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-u
 ## 相关文档
 
 - [README 宿主集成清单](../README.md#宿主集成清单)
-- [README 安全集成](../README.md#安全集成abp-openiddict--elsa-353)
+- [README 安全集成](../README.md#安全集成abp-openiddict--elsa-370)
 - [NuGet 发布准备](../README.md#nuget-发布准备)
