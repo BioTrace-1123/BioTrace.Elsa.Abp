@@ -14,6 +14,8 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 npm ci --prefix "$repo_root/host/BioTrace.Elsa.Abp.HttpApi.Host"
 npm ci --prefix "$repo_root/test/BioTrace.Elsa.Abp.E2E"
-npx --prefix "$repo_root/test/BioTrace.Elsa.Abp.E2E" playwright install --with-deps chromium
+# System libs: devcontainer Dockerfile (install-deps) or CI (install --with-deps).
+# Non-root dev shells cannot use --with-deps (playwright su's to root).
+npx --prefix "$repo_root/test/BioTrace.Elsa.Abp.E2E" playwright install chromium
 
 npm run test:e2e --prefix "$repo_root/test/BioTrace.Elsa.Abp.E2E" "$@"

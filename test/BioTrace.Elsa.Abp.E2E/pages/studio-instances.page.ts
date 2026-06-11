@@ -1,48 +1,67 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { waitForInstancesReady } from '../helpers/studio-ready';
 
 export class StudioInstancesPage {
   constructor(private readonly page: Page) {}
 
   async waitForLoaded(): Promise<void> {
-    await this.page.waitForURL(/\/studio\/workflows\/instances/, { timeout: 60_000 });
-    await this.page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => undefined);
+    await waitForInstancesReady(this.page);
   }
 
   async expectInstanceWithStatus(definitionId: string, statusPattern: RegExp): Promise<void> {
-    const row = this.page.getByRole('row').filter({ hasText: definitionId });
+    await this.expectInstanceVisible(definitionId, statusPattern);
+  }
+
+  async expectInstanceVisible(instanceId: string, statusPattern: RegExp): Promise<void> {
+    const searchBox = this.page.getByRole('textbox', { name: /search on id/i });
+    await searchBox.fill(instanceId);
+
+    const row = this.page.getByRole('row').filter({ hasText: instanceId });
     await row.first().waitFor({ state: 'visible', timeout: 60_000 });
-    await this.page.getByText(statusPattern).first().waitFor({ state: 'visible', timeout: 60_000 });
+    await expect(row.first()).toContainText(statusPattern);
   }
 
   async waitForInstanceStatus(definitionId: string, statusPattern: RegExp, timeoutMs = 90_000): Promise<void> {
-    const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      const row = this.page.getByRole('row').filter({ hasText: definitionId });
-      if ((await row.count()) > 0) {
-        const text = await row.first().innerText();
-        if (statusPattern.test(text)) {
-          return;
-        }
-      }
+    await expect
+      .poll(
+        async () => {
+          const row = this.page.getByRole('row').filter({ hasText: definitionId });
+          if ((await row.count()) > 0) {
+            const text = await row.first().innerText();
+            if (statusPattern.test(text)) {
+              return true;
+            }
+          }
 
-      await this.page.reload();
-      await this.waitForLoaded();
-      await this.page.waitForTimeout(2_000);
-    }
-
-    throw new Error(`Timed out waiting for instance of '${definitionId}' with status matching ${statusPattern}.`);
+          await this.page.reload();
+          await waitForInstancesReady(this.page);
+          return false;
+        },
+        { timeout: timeoutMs, intervals: [2_000] },
+      )
+      .toBe(true);
   }
 
-  async cancelFirstRunningInstance(definitionId: string): Promise<void> {
-    const row = this.page.getByRole('row').filter({ hasText: definitionId }).first();
+  async cancelFirstRunningInstance(instanceId: string): Promise<void> {
+    const searchBox = this.page.getByRole('textbox', { name: /search on id/i });
+    await searchBox.fill(instanceId);
+
+    const row = this.page.getByRole('row').filter({ hasText: instanceId }).first();
     await row.waitFor({ state: 'visible', timeout: 60_000 });
 
-    const cancelButton = row.getByRole('button', { name: /cancel/i }).or(this.page.getByRole('button', { name: /cancel/i }).first());
-    await cancelButton.click();
+    await row.locator('button').last().click();
+    const cancelAction = this.page
+      .getByRole('menuitem', { name: /cancel/i })
+      .or(this.page.getByRole('listitem', { name: /cancel/i }))
+      .or(this.page.getByText(/^cancel workflow$/i))
+      .or(this.page.getByText(/^cancel$/i));
+    await cancelAction.first().click();
 
-    const confirmButton = this.page.getByRole('button', { name: /cancel|confirm|yes/i }).last();
-    if (await confirmButton.isVisible().catch(() => false)) {
-      await confirmButton.click();
+    const confirmButton = this.page
+      .getByRole('button', { name: /^(yes|confirm|cancel)$/i })
+      .or(this.page.getByRole('menuitem', { name: /cancel/i }));
+    if (await confirmButton.first().isVisible().catch(() => false)) {
+      await confirmButton.first().click();
     }
   }
 }

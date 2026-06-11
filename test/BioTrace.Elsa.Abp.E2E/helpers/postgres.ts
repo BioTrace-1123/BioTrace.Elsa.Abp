@@ -9,7 +9,28 @@ export function getPostgresConnectionBase(): string {
   return `postgresql://postgres:postgres@${E2E_POSTGRES_HOST}:5432`;
 }
 
-export async function ensureE2eDatabasesExist(): Promise<void> {
+async function recreateDatabase(client: Client, databaseName: string): Promise<void> {
+  await client.query(
+    `SELECT pg_terminate_backend(pid)
+     FROM pg_stat_activity
+     WHERE datname = $1 AND pid <> pg_backend_pid()`,
+    [databaseName],
+  );
+
+  await client.query(`DROP DATABASE IF EXISTS "${databaseName}"`);
+  await client.query(`CREATE DATABASE "${databaseName}"`);
+}
+
+export async function verifyPostgresReachable(): Promise<void> {
+  const client = new Client({
+    connectionString: `${getPostgresConnectionBase()}/postgres`,
+  });
+
+  await client.connect();
+  await client.end();
+}
+
+export async function recreateE2eDatabases(): Promise<void> {
   const client = new Client({
     connectionString: `${getPostgresConnectionBase()}/postgres`,
   });
@@ -18,10 +39,7 @@ export async function ensureE2eDatabasesExist(): Promise<void> {
 
   try {
     for (const database of [E2E_ABP_DATABASE, E2E_ELSA_DATABASE]) {
-      const exists = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [database]);
-      if (exists.rowCount === 0) {
-        await client.query(`CREATE DATABASE "${database}"`);
-      }
+      await recreateDatabase(client, database);
     }
   } finally {
     await client.end();

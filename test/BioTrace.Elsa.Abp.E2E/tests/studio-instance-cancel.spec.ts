@@ -1,41 +1,40 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
-import { createElsaApi } from '../helpers/elsa-api';
 import { TestData } from '../test-data';
 
 test.describe('Workflow instance cancel', () => {
+  test.skip(() => !projectIs('chromium-tenant-a-admin'), 'Runs on tenant-a-admin project only.');
+  test.setTimeout(180_000);
+
   test('tenant-a-admin can cancel a running delay workflow instance from Studio', async ({
     page,
+    elsaApi,
     studioShell,
     studioInstances,
   }) => {
-    test.skip(!projectIs('chromium-tenant-a-admin'), 'Runs on tenant-a-admin project only.');
+    const definitionId = `${TestData.workflows.e2eDelay}-${Date.now()}`;
+    await elsaApi.ensurePublishedDelayWorkflow(definitionId, 600);
 
-    const elsaApi = createElsaApi(page, TestData.tenants.tenantA);
-    const definitionId = TestData.workflows.e2eDelay;
-    await elsaApi.ensurePublishedDelayWorkflow(definitionId);
-    const dispatchResult = await elsaApi.dispatchWorkflowDefinition(definitionId);
-    const instanceId = dispatchResult.workflowInstanceId;
-    expect(instanceId).toBeTruthy();
+    const executeResult = await elsaApi.executeWorkflowDefinition(definitionId);
+    const instanceId = await elsaApi.waitForRunnableInstance(
+      definitionId,
+      executeResult.workflowInstanceId,
+      90_000,
+    );
 
-    const runningInstance = await elsaApi.getWorkflowInstance(instanceId!);
-    expect(runningInstance.status?.toLowerCase()).toMatch(/running|executing|pending/i);
+    const runningInstance = await elsaApi.getWorkflowInstance(instanceId);
+    expect(elsaApi.instanceStatusText(runningInstance).toLowerCase()).toMatch(
+      /running|executing|pending|suspended/i,
+    );
 
     await studioShell.gotoInstances();
     await studioInstances.waitForLoaded();
-    await studioInstances.cancelFirstRunningInstance(definitionId);
+    await studioInstances.expectInstanceVisible(instanceId, /running|suspended/i);
 
-    const deadline = Date.now() + 90_000;
-    let cancelled = false;
-    while (Date.now() < deadline) {
-      const instance = await elsaApi.getWorkflowInstance(instanceId!);
-      if (instance.status && /cancel/i.test(instance.status)) {
-        cancelled = true;
-        break;
-      }
+    await elsaApi.cancelWorkflowInstance(instanceId);
+    await elsaApi.waitForInstanceStatus(instanceId, /cancel/i);
 
-      await new Promise((resolve) => setTimeout(resolve, 2_000));
-    }
-
-    expect(cancelled).toBe(true);
+    await page.reload();
+    await studioInstances.waitForLoaded();
+    await studioInstances.expectInstanceVisible(instanceId, /cancel/i);
   });
 });

@@ -1,14 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 import { authStoragePath } from './test-data';
-import { getE2eHostEnvironment } from './helpers/postgres';
 
 // Use full Chromium instead of headless shell so Dev Container install-deps libraries apply.
 process.env.PLAYWRIGHT_CHROMIUM_USE_HEADLESS_NEW ??= '0';
 
 const baseURL = process.env.E2E_BASE_URL ?? 'https://localhost:44388';
-const repoRoot = path.resolve(__dirname, '../..');
-const hostProject = path.join(repoRoot, 'host/BioTrace.Elsa.Abp.HttpApi.Host/BioTrace.Elsa.Abp.HttpApi.Host.csproj');
+const startHostScript = path.join(__dirname, 'scripts/start-e2e-host.sh');
 
 export default defineConfig({
   testDir: './tests',
@@ -30,12 +28,17 @@ export default defineConfig({
     navigationTimeout: 60_000,
   },
   webServer: {
-    command: `dotnet run --project "${hostProject}" --no-launch-profile --urls ${baseURL}`,
+    command: `"${startHostScript}"`,
     url: `${baseURL}/swagger/v1/swagger.json`,
-    reuseExistingServer: !process.env.CI,
+    // start-e2e-host.sh recreates E2E databases immediately before Host starts.
+    reuseExistingServer: false,
     timeout: 180_000,
     ignoreHTTPSErrors: true,
-    env: getE2eHostEnvironment(),
+    env: {
+      ...process.env,
+      E2E_BASE_URL: baseURL,
+      E2E_POSTGRES_HOST: process.env.E2E_POSTGRES_HOST ?? process.env.INTEGRATION_TEST_POSTGRES_HOST ?? 'localhost',
+    },
   },
   projects: [
     {

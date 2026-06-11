@@ -1,11 +1,11 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { waitForDefinitionsReady } from '../helpers/studio-ready';
 
 export class StudioDefinitionsPage {
   constructor(private readonly page: Page) {}
 
   async waitForLoaded(): Promise<void> {
-    await this.page.waitForURL(/\/studio\/workflows\/definitions/, { timeout: 60_000 });
-    await this.page.waitForLoadState('networkidle', { timeout: 60_000 }).catch(() => undefined);
+    await waitForDefinitionsReady(this.page);
   }
 
   async hasDefinition(definitionId: string): Promise<boolean> {
@@ -23,12 +23,10 @@ export class StudioDefinitionsPage {
   }
 
   async expectDefinitionHidden(definitionId: string): Promise<void> {
-    await this.page.waitForTimeout(1_000);
-    const matches = this.page.getByText(definitionId, { exact: false });
-    const count = await matches.count();
-    if (count > 0) {
-      throw new Error(`Expected workflow definition '${definitionId}' to be hidden, but found ${count} match(es).`);
-    }
+    await this.waitForLoaded();
+    await expect
+      .poll(async () => this.page.getByText(definitionId, { exact: false }).count(), { timeout: 15_000 })
+      .toBe(0);
   }
 
   async clickCreateWorkflow(): Promise<void> {
@@ -78,8 +76,13 @@ export class StudioDefinitionsPage {
   }
 
   async publishCurrentWorkflow(): Promise<void> {
-    const publishButton = this.page.getByRole('button', { name: /publish/i }).first();
-    await publishButton.waitFor({ state: 'visible', timeout: 30_000 });
+    await this.page.locator('[role="progressbar"]').waitFor({ state: 'hidden', timeout: 90_000 }).catch(() => undefined);
+
+    const publishButton = this.page
+      .getByRole('button', { name: /publish/i })
+      .or(this.page.locator('button[title*="Publish" i], button[aria-label*="Publish" i]'))
+      .first();
+    await publishButton.waitFor({ state: 'visible', timeout: 60_000 });
     await publishButton.click();
 
     const confirmButton = this.page.getByRole('button', { name: /publish|confirm|ok/i }).last();

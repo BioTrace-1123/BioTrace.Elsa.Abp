@@ -1,10 +1,10 @@
 import { test as setup } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
-import { authStoragePath, TestData, type AuthRole } from '../test-data';
+import { authStoragePath, localStoragePath, sessionStoragePath, TestData, type AuthRole } from '../test-data';
 import { StudioShellPage } from '../pages/studio-shell.page';
 
-const authDir = path.resolve(__dirname, '../.auth');
+const e2eRoot = path.resolve(__dirname, '..');
 
 const roles: Array<{ role: AuthRole; username: string; tenantName?: string }> = [
   { role: 'admin', username: TestData.users.hostAdmin },
@@ -15,11 +15,32 @@ const roles: Array<{ role: AuthRole; username: string; tenantName?: string }> = 
 
 for (const { role, username, tenantName } of roles) {
   setup(`authenticate as ${role}`, async ({ page }) => {
-    fs.mkdirSync(authDir, { recursive: true });
+    fs.mkdirSync(path.join(e2eRoot, '.auth'), { recursive: true });
 
     const studio = new StudioShellPage(page);
     await studio.loginViaStudio(username, tenantName);
 
-    await page.context().storageState({ path: path.resolve(__dirname, '..', authStoragePath(role)) });
+    const browserStorage = await page.evaluate(() => {
+      const readStore = (store: Storage): Record<string, string> => {
+        const data: Record<string, string> = {};
+        for (let index = 0; index < store.length; index++) {
+          const key = store.key(index);
+          if (key) {
+            data[key] = store.getItem(key) ?? '';
+          }
+        }
+
+        return data;
+      };
+
+      return {
+        session: readStore(sessionStorage),
+        local: readStore(localStorage),
+      };
+    });
+
+    fs.writeFileSync(path.join(e2eRoot, sessionStoragePath(role)), JSON.stringify(browserStorage.session), 'utf-8');
+    fs.writeFileSync(path.join(e2eRoot, localStoragePath(role)), JSON.stringify(browserStorage.local), 'utf-8');
+    await page.context().storageState({ path: path.join(e2eRoot, authStoragePath(role)) });
   });
 }

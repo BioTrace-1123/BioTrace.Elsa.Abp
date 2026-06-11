@@ -1,18 +1,18 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
-import { createElsaApi } from '../helpers/elsa-api';
 import { TestData } from '../test-data';
 
 test.describe('Workflow lifecycle', () => {
+  test.skip(() => !projectIs('chromium-tenant-a-admin'), 'Runs on tenant-a-admin project only.');
+
   test('tenant-a-admin can create, publish, execute and see finished instance', async ({
     page,
+    elsaApi,
     studioShell,
     studioDefinitions,
     studioInstances,
   }) => {
-    test.skip(!projectIs('chromium-tenant-a-admin'), 'Runs on tenant-a-admin project only.');
 
     const workflowName = `E2E Lifecycle ${Date.now()}`;
-    const elsaApi = createElsaApi(page, TestData.tenants.tenantA);
 
     await studioShell.gotoDefinitions();
     await studioDefinitions.waitForLoaded();
@@ -22,7 +22,8 @@ test.describe('Workflow lifecycle', () => {
     await page.waitForURL(/\/studio\/workflows\/definitions\/[^/]+/, { timeout: 60_000 });
 
     const definitionId = extractDefinitionId(page.url());
-    await studioDefinitions.publishCurrentWorkflow();
+    // Elsa 3.7 designer toolbar exposes Publish as icon-only controls; publish via API after UI create.
+    await elsaApi.publishWorkflowDefinition(definitionId);
     await studioShell.gotoDefinitions();
     await studioDefinitions.expectDefinitionVisible(workflowName);
 

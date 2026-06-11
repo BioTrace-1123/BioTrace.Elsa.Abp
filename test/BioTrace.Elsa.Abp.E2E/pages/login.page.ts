@@ -13,7 +13,11 @@ export class LoginPage {
   }
 
   async login(username: string, password = TestData.password): Promise<void> {
-    const loginInput = this.page.locator('input[name="LoginInput"], #LoginInput').first();
+    const loginInput = this.page
+      .locator(
+        'input[name="LoginInput.UserNameOrEmailAddress"], #LoginInput_UserNameOrEmailAddress, input[name="LoginInput"], #LoginInput',
+      )
+      .first();
     await loginInput.waitFor({ state: 'visible' });
     await loginInput.fill(username);
 
@@ -21,5 +25,6 @@ export class LoginPage {
     await passwordInput.fill(password);
 
     await this.page.getByRole('button', { name: /log\s*in|sign\s*in/i }).click();
+    await this.page.waitForURL((url) => !url.pathname.includes('/Account/Login'), { timeout: 90_000 });
   }
 }
