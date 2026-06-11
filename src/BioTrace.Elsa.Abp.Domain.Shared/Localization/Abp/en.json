@@ -4,6 +4,7 @@
     "MyAccount":  "My account",
     "SamplePageMessage": "A sample page for the Abp module",
     "Abp:ElsaConnectionStringNotConfigured": "Connection string '{ConnectionStringName}' is not configured. Add it under ConnectionStrings in appsettings.",
+    "Abp:ElsaPersistenceNotConfigured": "Elsa EF Core persistence is not configured. Reference Elsa.Persistence.EFCore.{Provider} in your host and override ElsaAbpAspNetCoreModule.ConfigureElsaPersistence.",
     "Permission:Abp": "Abp",
     "Permission:Abp.Elsa": "Elsa Workflows",
     "Permission:Abp.Elsa.Admin": "Elsa administrator (all API permissions)",

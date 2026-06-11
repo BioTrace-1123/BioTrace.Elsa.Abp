@@ -1,10 +1,8 @@
-using Elsa.EntityFrameworkCore.Extensions;
-using Elsa.EntityFrameworkCore.Modules.Management;
-using Elsa.EntityFrameworkCore.Modules.Runtime;
+using Elsa.Common.Multitenancy;
 using Elsa.Extensions;
 using Elsa.Features.Services;
 using Elsa.Http;
-using System.Reflection;
+using Elsa.Tenants.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,43 +64,51 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         var configuration = context.Services.GetConfiguration();
         var hostEnvironment = context.Services.GetHostingEnvironment();
         var options = context.Services.ExecutePreConfiguredActions<ElsaAbpOptions>();
-        var connectionString = GetElsaConnectionString(configuration, options);
+        options.EnableMultiTenancy = options.EnableMultiTenancy
+            || configuration.GetValue("Elsa:EnableMultiTenancy", false);
+        _ = GetElsaConnectionString(configuration, options);
         var enableElsaSwagger = configuration.GetValue(
             "Elsa:EnableElsaSwagger",
             hostEnvironment.IsDevelopment());
 
         context.Services.AddElsa(elsa =>
         {
-            ConfigureElsaCore(elsa, connectionString, options, enableElsaSwagger);
+            ConfigureElsaCore(elsa, options, enableElsaSwagger);
             ConfigureElsaActivities(elsa);
         });
+
+        ConfigureElsaMultiTenancyServices(context.Services);
+    }
+
+    public override void PostConfigureServices(ServiceConfigurationContext context)
+    {
+        ConfigureElsaMultiTenancyServices(context.Services);
+    }
+
+    protected virtual void ConfigureElsaMultiTenancyServices(IServiceCollection services)
+    {
+        var options = services.ExecutePreConfiguredActions<ElsaAbpOptions>();
+        if (!options.EnableMultiTenancy)
+        {
+            return;
+        }
+
+        services.AddHttpContextAccessor();
+        services.RemoveAll<ITenantAccessor>();
+        services.AddSingleton<ITenantAccessor, ElsaAbpTenantAccessor>();
+        services.RemoveAll<ITenantsProvider>();
+        services.AddTransient<ITenantsProvider, ElsaAbpTenantsProvider>();
+        services.Configure<TenantsOptions>(tenantOptions => tenantOptions.IsEnabled = true);
     }
 
     protected virtual void ConfigureElsaCore(
         IModule elsa,
-        string connectionString,
         ElsaAbpOptions options,
         bool enableElsaSwagger)
     {
         ElsaAbpMultiTenancyConfigurator.Configure(elsa, options);
 
-        elsa.UseWorkflowManagement(management =>
-        {
-            management.UseEntityFrameworkCore(ef =>
-            {
-                ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
-            });
-        });
-
-        elsa.UseWorkflowRuntime(runtime =>
-        {
-            runtime.UseEntityFrameworkCore(ef =>
-            {
-                ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
-            });
-        });
+        ConfigureElsaPersistence(elsa, options);
 
         if (options.EnableWorkflowsApi)
         {
@@ -120,6 +126,15 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         }
 
         elsa.UseScheduling();
+    }
+
+    /// <summary>
+    /// Configures Elsa Management/Runtime EF Core persistence (provider-specific).
+    /// Override in the host module and reference <c>Elsa.Persistence.EFCore.{Provider}</c>.
+    /// </summary>
+    protected virtual void ConfigureElsaPersistence(IModule elsa, ElsaAbpOptions options)
+    {
+        throw new BusinessException(AbpErrorCodes.ElsaPersistenceNotConfigured);
     }
 
     protected virtual void ConfigureElsaSwagger(IModule elsa, ElsaAbpOptions options)
