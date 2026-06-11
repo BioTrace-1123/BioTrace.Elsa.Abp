@@ -1,4 +1,4 @@
-# 消费方集成指南（NuGet）
+# 调用方集成指南（NuGet）
 
 本文说明如何在**既有 ABP 调用方项目**中引用本模块 NuGet 包，完成 **Elsa Workflows** 与 **Elsa Studio** 集成（权限桥接、双库、OpenIddict）。
 
@@ -180,7 +180,6 @@ ABP 业务库与 Elsa 工作流库**必须分离**：
 ```json
 {
   "Elsa": {
-    "RunMigrations": true,
     "EnableWorkflowsApi": true,
     "EnableElsaSwagger": false,
     "EnableHttpActivities": true,
@@ -192,7 +191,6 @@ ABP 业务库与 Elsa 工作流库**必须分离**：
 
 | 配置项 | 说明 | 生产建议 |
 |---|---|---|
-| `RunMigrations` | 启动时由 Elsa EF 自动迁移 Elsa 库 | `true`（或改为 CI/CD 显式迁移） |
 | `EnableWorkflowsApi` | 暴露 `/elsa/api/*` | `true` |
 | `EnableElsaSwagger` | 独立 FastEndpoints OpenAPI（`/swagger/elsa`） | `false` |
 | `EnableHttpActivities` | 启用 Elsa HTTP 触发 Activity | 按需 |
@@ -276,13 +274,7 @@ Configure<AbpDbConnectionOptions>(options =>
 });
 ```
 
-### 3. Elsa 库迁移（自动）
-
-当 `Elsa:RunMigrations=true` 时，Elsa Management / Runtime 表由 **Elsa 自带 EF 迁移**写入 `ConnectionStrings:Elsa` 指向的库，**不会**出现在调用方 ABP 业务 DbContext 迁移中。
-
-生产环境若希望迁移与启动解耦，可设 `RunMigrations=false`，在发布流水线中单独执行 Elsa 3.7 EF 迁移（或临时启用 `RunMigrations`）。
-
-> **从 1.0.0（Elsa 3.5.3 + 内置 PostgreSQL）升级**：升级所有 `BioTrace.Elsa.Abp.*` 包；将 `Elsa.EntityFrameworkCore.*` 换为 `Elsa.Persistence.EFCore.*` 3.7.0；添加自定义 `ConfigureElsaPersistence` 模块；对已有 Elsa 库执行 3.6+ 迁移（升级前备份）；Elsa 3.6+ 中 `TenantId = null` 表示租户无关，升级前请将原默认租户行的 `null` 迁移为 `""`（若适用）。
+Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](https://elsaworkflows.io/) 自行维护；本模块不提供 Elsa 升级迁移指南。
 
 ## 权限配置
 
@@ -426,13 +418,13 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 
 ## 验证集成
 
-1. 启动调用方，确认 Elsa 库已建表（`RunMigrations=true` 时自动完成）。
+1. 启动调用方，确认 Elsa 持久化与连接串配置正确。
 2. 使用具备 `Abp.Elsa.Admin` 的用户获取 access_token。
 3. 调用 `GET /elsa/api/workflow-definitions`，应返回 200。
 4. 使用仅 `WorkflowDefinitions.Read` 的用户尝试 `POST /elsa/api/workflow-definitions`，应返回 403。
 5. 调用 `GET /api/abp/elsa/current-user`，确认 `permissions` 与角色一致。
 
-集成测矩阵（T0–T5）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/Security/ElsaAbpPermissionBridgeIntegrationTests.cs)。
+集成测矩阵（T0–T8）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/)。
 
 ## Elsa Studio 集成（可选）
 
@@ -473,7 +465,6 @@ RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-u
 | 启动报 `ElsaConnectionStringNotConfigured` | 在 `ConnectionStrings` 中添加名为 `Elsa` 的连接串 |
 | Elsa API 始终 401 | 检查 `UseAbpOpenIddictValidation`、JWT Audience、请求头 `Authorization: Bearer ...` |
 | Elsa API 403 但 ABP 权限已授予 | 确认 `EnablePermissionClaimsBridge=true`；检查是否授予的是 `Abp.Elsa.*` 而非仅业务权限 |
-| Elsa 表未创建 | 确认 `Elsa:RunMigrations=true` 且 `Elsa` 库账号有 DDL 权限 |
 | Studio 登录后无按钮 | 调用 `current-user` API 而非解析 JWT；检查 CORS 与 OpenIddict 客户端 RedirectUri |
 | 双 Swagger 路径冲突 | 保持 `UseElsaWorkflows()` 在 `UseSwagger()` **之前** |
 | 租户用户看不到 Elsa 数据 / 串租户 | 确认 `EnableMultiTenancy=true`、`UseMultiTenancy()` 与 `UseElsaAbpMultiTenancy()` 顺序；API 携带 `__tenant` Header |

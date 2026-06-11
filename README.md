@@ -6,8 +6,8 @@
 
 | 文档 | 说明 |
 |---|---|
-| [消费方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
-| [消费方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
+| [调用方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
+| [调用方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
 
 ## 技术栈
@@ -18,7 +18,7 @@
 - [Elsa Workflows](https://elsaworkflows.io/) **3.7.0**（原生集成，非 ABP Elsa Pro）
 - Entity Framework Core 持久化（Provider 由调用方自选；演示项目使用 PostgreSQL）
 
-> Elsa 3.6+ 起 EF 包重命名为 `Elsa.Persistence.EFCore.*`。`BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；调用方需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。
+> `BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；调用方需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。Elsa 版本升级与库表结构变更由调用方参照 [Elsa 官方文档](https://elsaworkflows.io/) 自行处理，本模块不提供升级迁移指南。
 
 ## 解决方案结构
 
@@ -50,11 +50,11 @@ test/
 
 ## 调用方集成清单
 
-> 从 NuGet 引用时的逐步教程见 **[消费方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。
+> 从 NuGet 引用时的逐步教程见 **[调用方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。
 
-引用本模块的 ABP 应用**必须**单独配置 Elsa 数据库；仅引用 NuGet/项目**不会**自动创建 Elsa 表。
+引用本模块的 ABP 应用**必须**单独配置 Elsa 连接串与持久化；Elsa 工作流库与 ABP 业务库分离维护。
 
-1. 在调用方启动模块上添加依赖（**含 EF Provider 模块**，见 [消费方指南](docs/nuget-consumer-guide.md)）：
+1. 在调用方启动模块上添加依赖（**含 EF Provider 模块**，见 [调用方指南](docs/nuget-consumer-guide.md)）：
    ```csharp
    [DependsOn(typeof(MyAppElsaPostgreSqlModule), typeof(AbpHttpApiModule))]
    // MyAppElsaPostgreSqlModule 继承 ElsaAbpAspNetCoreModule 并重写 ConfigureElsaPersistence
@@ -67,7 +67,6 @@ test/
        "Elsa": "Host=...;Database=your_elsa_db;..."
      },
      "Elsa": {
-       "RunMigrations": true,
        "EnableWorkflowsApi": true,
        "EnableElsaSwagger": true,
        "EnableHttpActivities": true
@@ -76,7 +75,7 @@ test/
    ```
 3. 在调用方 `OnApplicationInitialization` 中映射 Elsa 中间件（可调用扩展方法 `app.UseElsaWorkflows()`）。
 4. （可选）在调用方模块中继承 `ElsaAbpAspNetCoreModule`，重写 `ConfigureElsaPersistence`（Provider）与 `ConfigureElsaActivities`（Activity）。
-5. Elsa 表由 Elsa EF 迁移维护，**不会**出现在调用方 ABP 业务 DbContext 的迁移中。
+5. Elsa 工作流数据由 Elsa 持久化层维护，**不会**写入调用方 ABP 业务 DbContext。
 
 未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured`；未重写 `ConfigureElsaPersistence` 时抛出 `Abp:ElsaPersistenceNotConfigured`。
 
@@ -184,7 +183,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 
 - **租户主数据**：ABP `TenantManagement`（`AbpTenants`）；**不**启用 Elsa 自带 Tenant CRUD API。
 - **上下文桥接**：`ICurrentTenant` → `ElsaAbpTenantMapper`（Host → `""`，租户 → `Guid.ToString("D")`）→ Elsa `ITenantAccessor`。
-- **可选模块**：`ElsaAbpMultiTenancyModule`（消费方按需引用）。
+- **可选模块**：`ElsaAbpMultiTenancyModule`（调用方按需引用）。
 - **管道顺序**：`UseAuthentication` → `UseAbpOpenIddictValidation` → **`UseMultiTenancy()`** → `UseAuthorization` → **`UseElsaAbpMultiTenancy()`** → `UseElsaWorkflows()`。
 
 ### 配置示例
@@ -197,8 +196,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
     "Elsa": "Host=...;Database=BioTrace_Elsa;..."
   },
   "Elsa": {
-    "EnableMultiTenancy": true,
-    "RunMigrations": true
+    "EnableMultiTenancy": true
   }
 }
 ```
@@ -419,9 +417,9 @@ PR 合并前三个 job 均须通过。
 
 仓库已提供统一打包元数据（见 `common.props`）与发布工作流 [`.github/workflows/nuget-publish.yml`](.github/workflows/nuget-publish.yml)。**仅发布 Elsa / Studio 集成相关库**；`host/` 与 `test/` 不打包。
 
-消费方如何安装包、配置数据库与权限，见 **[消费方集成指南](docs/nuget-consumer-guide.md)**。
+调用方如何安装包、配置数据库与权限，见 **[调用方集成指南](docs/nuget-consumer-guide.md)**。
 
-### 消费方直接引用（典型）
+### 调用方直接引用（典型）
 
 | 场景 | 在调用方项目中显式引用的包 |
 |------|--------------------------|
