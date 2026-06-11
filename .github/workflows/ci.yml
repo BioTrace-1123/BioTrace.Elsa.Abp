@@ -1,21 +1,23 @@
 name: CI
 
 on:
+  # Post-merge: verify protected branches only (avoid duplicate runs with pull_request).
   push:
     branches:
       - main
       - develop
-      - 'feature/**'
-      - 'release/**'
-      - 'hotfix/**'
+  # Pre-merge: validate PRs targeting main/develop (feature/release/hotfix branches).
   pull_request:
     branches:
       - main
       - develop
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build-and-test:

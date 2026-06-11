@@ -464,7 +464,7 @@ git push -u origin develop
 
 ## CI
 
-向 `main` / `develop` 的 PR，以及对 `main`、`develop`、`feature/*`、`release/*`、`hotfix/*` 的推送会触发 [GitHub Actions](.github/workflows/ci.yml)：
+向 `main` / `develop` 的 **PR**（含 `feature/*`、`release/*`、`hotfix/*` 等源分支），以及合并后对 `main`、`develop` 的 **push** 会触发 [GitHub Actions](.github/workflows/ci.yml)（同一 PR 更新只跑一套，不重复触发 push + pull_request）：
 
 | Job | 内容 |
 |-----|------|
