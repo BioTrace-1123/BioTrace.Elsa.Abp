@@ -1,6 +1,6 @@
 # BioTrace.Elsa.Abp
 
-基于 [ABP Framework](https://abp.io/) 的可复用 **Application Module**，用于在宿主应用中集成 BioTrace / Elsa 相关能力。
+基于 [ABP Framework](https://abp.io/) 的可复用 **Application Module**，在 ABP 宿主应用中集成 [Elsa Workflows](https://elsaworkflows.io/) 3.7（OpenIddict 权限桥接、多租户、Hosted Elsa Studio）。
 
 ## 文档
 
@@ -261,63 +261,28 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 - Host 托管配置：`host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json` 中 `ElsaStudio:Enabled`、`ElsaStudio:PathBase` 与 `OpenIddict:Applications:ElsaStudio`
 - 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
 - **多租户**：`BioTrace.Elsa.Abp.Studio.BlazorWasm` 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
-- VS Code / Cursor：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，启动后手动打开上表中的演示入口
+- VS Code：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，启动后手动打开上表中的演示入口
 
-> 若从独立 Studio 端口（`:5003`）迁移，请重启 Host 以重新 Seed OpenIddict 客户端 RedirectUri，或手动更新 `OpenIddictApplications` 表。
+## Dev Container（可选）
 
-## 使用 Dev Container（推荐）
+仓库提供 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) 配置（`.devcontainer/`），内含 .NET 10 SDK、Node.js、PostgreSQL 与 Playwright 依赖。
 
-克隆仓库后，可用 VS Code / Cursor 的 [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) 一键进入容器化开发环境（含 PostgreSQL 与 .NET 10 SDK）。
+**前置**：[Docker](https://docs.docker.com/get-docker/) 与 VS Code [Dev Containers 扩展](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)。
 
-**前置**：安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（启用 **WSL 2** 引擎），以及 Dev Containers 扩展。仓库在 WSL 内时，须在 Docker Desktop → **Settings → Resources → WSL integration** 中为 **Ubuntu** 打开集成，并在 WSL 终端能执行 `docker version`。
-
-1. 打开仓库根目录（推荐：先用 **WSL: Connect to WSL** 打开 `/root/source/repos/BioTrace.Elsa.Abp`，再 **Reopen in Container**；避免仅从 Windows 侧打开 `\\wsl.localhost\...` 却未启用 WSL 集成）。
+1. 克隆仓库并在 VS Code 中打开根目录。
 2. 命令面板执行 **Dev Containers: Reopen in Container**。
-3. 等待镜像构建与 `postCreate`（`dotnet dev-certs https --trust`、`dotnet restore`）。
-4. 按 **F5**，选择 **Launch HttpApi.Host (HTTPS)**。
-5. 浏览器手动打开演示入口：`/studio`、`/swagger`、`/swagger/elsa`（见上文「本地运行 Host」表格）。
+3. 等待 `postCreateCommand` 完成（`dotnet restore`、HTTPS 开发证书、Host 前端依赖等）。
+4. **F5** → **Launch HttpApi.Host (HTTPS)**，在浏览器打开 `/studio`、`/swagger`、`/swagger/elsa`。
 
-容器内通过环境变量将数据库主机设为 Compose 服务名 `postgres`（`ConnectionStrings__Default` / `ConnectionStrings__Elsa`），不影响在宿主机上直接使用 `appsettings.json` 里的 `localhost` 连接串。集成测同样使用 `INTEGRATION_TEST_POSTGRES_HOST=postgres`（已在 devcontainer 配置），**无需在容器内再执行 `docker compose up -d`**；直接运行 `./scripts/test-integration.sh` 即可。
-
-**常见问题**
+容器内 PostgreSQL 主机为 Compose 服务名 `postgres`（见 `devcontainer.json` 中的 `ConnectionStrings__*` 与 `INTEGRATION_TEST_POSTGRES_HOST`），无需在容器内单独执行 `docker compose up -d`。集成测可直接运行 `./scripts/test-integration.sh`。
 
 | 现象 | 处理 |
 |------|------|
-| `Failed to install Cursor server` / `docker compose up` 失败；日志含 `ubuntu.sock: no such file or directory` 或 `distro mount service` | 在 Docker Desktop 为 **Ubuntu** 启用 WSL integration；PowerShell 执行 `wsl -d Ubuntu` 启动发行版后 `wsl --shutdown`，重启 Docker Desktop，再 **Reopen in Container**。仍失败则改为在 WSL 内打开项目，或将仓库克隆到 Windows 路径（如 `C:\dev\`）后重试 |
-| WSL 内提示 `docker: command not found` | 同上，打开 Docker Desktop 的 WSL integration；不要只在 WSL 里装 `docker.io` 却未连上 Desktop |
-| 宿主机 `5432` 已被占用 | 停止本地 PostgreSQL，或临时修改根目录 `docker-compose.yml` 的端口映射 |
-| HTTPS 证书不受信任 | 在容器终端执行 `dotnet dev-certs https --trust` |
-| 数据库未就绪 | 确认 `docker compose` 中 `postgres` 健康检查通过后再启动 Host |
-| 不用容器、仅在宿主机开发 | 仍按上文「本地运行 Host」：`docker compose up -d` + `dotnet run` |
+| 端口 `5432` 冲突 | 停止本地 PostgreSQL，或修改根目录 `docker-compose.yml` 端口映射 |
+| HTTPS 证书不受信任 | 容器内执行 `dotnet dev-certs https --trust` |
+| 数据库未就绪 | 等待 Compose 中 `postgres` 健康检查通过后再启动 Host |
 
-## 在 WSL 中使用 Cursor（性能与 Git 界面）
-
-本仓库位于 WSL **ext4**（`/root/source/repos/...`），磁盘顺序读约 **2.3 GB/s**、4K 随机读 IOPS 约 **2.4 万**；若放在 Windows 盘（`/mnt/c`，9p）则慢约 **10–16 倍**，IDE 索引与 `git status` 会明显卡顿。**请保持仓库在 WSL 内，不要迁到 `C:\`。**
-
-### 推荐打开方式（避免 Git 面板残留、Explorer 不刷新）
-
-| 方式 | 说明 |
-|------|------|
-| **推荐** | 安装 [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl) 扩展 → **WSL: Connect to WSL** → 打开 `/root/source/repos/BioTrace.Elsa.Abp` |
-| **可选** | 在 WSL 终端执行 `cursor .`（在仓库根目录） |
-| **不推荐** | 仅从 Windows 资源管理器打开 `\\wsl.localhost\Ubuntu\...` 且左下角**未**显示 `WSL: Ubuntu` — Git/文件监视易失效 |
-
-命令行或 Agent 在**集成终端外**执行 `git commit` 后，Source Control 有时不会立刻更新（WSL2 对 `.git/index` 的 rename 监视不稳定）。处理：
-
-1. 切回 Cursor 窗口（已启用 `git.refreshOnWindowFocus`）或命令面板 **Git: Refresh**
-2. 仓库内已配置 `.vscode/settings.json`：`git.autorefresh`、`git.autofetch: false`（本仓库）、排除 `bin`/`obj` 监视
-3. 若仍偶发不刷新：用户设置中临时设 `"remote.WSL.fileWatcher.polling": true` 后 **Reload Window**
-
-### WSL 一次性调优（需 sudo）
-
-```bash
-# 提高 inotify 上限，避免大仓库监视耗尽
-grep -q fs.inotify.max_user_watches /etc/sysctl.conf || \
-  echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
-sudo sysctl -p
-```
-
-可选：在 Windows 用户目录 `%UserProfile%\.wslconfig` 中限制 WSL 内存，避免与 Cursor 争抢（示例 `[wsl2] memory=8GB`）。
+不使用 Dev Container 时，按上文「本地运行 Host」在宿主机安装 .NET 10 并运行 `docker compose up -d`。
 
 ## 本地开发
 
@@ -371,7 +336,7 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 | 场景 | Postgres 主机 | 前置 | 命令 |
 |------|---------------|------|------|
 | 宿主机 | `localhost`（默认） | `docker compose up -d` | `./scripts/test-integration.sh` |
-| Dev Container | `postgres`（`INTEGRATION_TEST_POSTGRES_HOST` 已配置） | Compose `postgres` 服务健康即可 | `./scripts/test-integration.sh` |
+| Dev Container | `postgres`（环境变量已配置） | Compose `postgres` 服务健康即可 | `./scripts/test-integration.sh` |
 | CI | `localhost`（GHA service） | 自动 | `integration-tests` job |
 
 连接串主机可通过环境变量 `INTEGRATION_TEST_POSTGRES_HOST` 覆盖（默认 `localhost`）。测试库 `BioTrace_Abp_Test`、`BioTrace_Elsa_Test` 在 Postgres 可达时由测试 fixture 自动创建（亦见 [`docker/postgres/init/01-create-databases.sql`](docker/postgres/init/01-create-databases.sql)）。
@@ -397,7 +362,7 @@ E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
 
 CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright Chromium）。
 
-VS Code / Cursor 任务：**test-solution**（单元测）、**test-integration**（集成测）、**test-e2e**（浏览器 E2E）。
+VS Code 任务：**test-solution**（单元测）、**test-integration**（集成测）、**test-e2e**（浏览器 E2E）。
 
 演示 Host 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
 

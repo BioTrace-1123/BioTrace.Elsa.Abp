@@ -30,7 +30,7 @@ RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
     && mkdir -p /workspaces \
     && chown -R "${USERNAME}:${USERNAME}" /workspaces
 
-# Chromium system libraries for Playwright MCP and E2E tests.
+# Chromium system libraries for browser E2E tests.
 # Use playwright install-deps instead of a manual apt list — Ubuntu Noble renames
 # packages (e.g. libasound2 → libasound2t64) and Playwright tracks the correct names.
 RUN unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY \
