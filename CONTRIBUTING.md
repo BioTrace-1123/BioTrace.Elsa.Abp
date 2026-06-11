@@ -79,9 +79,12 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 
 # 可选（需 PostgreSQL；Dev Container 内可直接运行）
 ./scripts/test-integration.sh
+./scripts/test-e2e.sh
 ```
 
-CI 会在 PR 与相关分支推送时自动运行（见 `.github/workflows/ci.yml`）：`build-and-test`（单元测）与 `integration-tests`（Host 集成测）并行执行。
+涉及 Elsa Studio、OIDC 登录流或多租户 UI 的改动，建议本地跑通 `./scripts/test-e2e.sh` 或相关 spec。说明见 [README — 浏览器 E2E](README.md#浏览器-e2eplaywright)。
+
+CI 会在 PR 与相关分支推送时自动运行（见 `.github/workflows/ci.yml`）：`build-and-test`（单元测）、`integration-tests`（Host 集成测）与 `e2e-tests`（Playwright 浏览器 E2E）均须通过。
 
 ## GitHub 仓库建议设置
 

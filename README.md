@@ -9,6 +9,7 @@
 | [调用方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
 | [调用方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
+| [浏览器 E2E（Playwright）](#浏览器-e2eplaywright) | Studio OIDC 全链路、多租户与权限的自动化验证 |
 
 ## 技术栈
 
@@ -273,7 +274,16 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 3. 等待 `postCreateCommand` 完成（`dotnet restore`、HTTPS 开发证书、演示项目前端依赖等）。
 4. **F5** → **Launch HttpApi.Host (HTTPS)**，在浏览器打开 `/studio`、`/swagger`、`/swagger/elsa`。
 
-容器内 PostgreSQL 主机为 Compose 服务名 `postgres`（见 `devcontainer.json` 中的 `ConnectionStrings__*` 与 `INTEGRATION_TEST_POSTGRES_HOST`），无需在容器内单独执行 `docker compose up -d`。集成测可直接运行 `./scripts/test-integration.sh`。
+容器内 PostgreSQL 主机为 Compose 服务名 `postgres`（见 `devcontainer.json` 中的 `ConnectionStrings__*` 与 `INTEGRATION_TEST_POSTGRES_HOST`），无需在容器内单独执行 `docker compose up -d`。集成测与浏览器 E2E 可直接运行：
+
+```bash
+./scripts/test-integration.sh
+./scripts/test-e2e.sh
+# 或显式指定 Postgres 主机（与集成测相同）
+E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
+```
+
+详见下文 [浏览器 E2E（Playwright）](#浏览器-e2eplaywright)。
 
 | 现象 | 处理 |
 |------|------|
@@ -342,13 +352,66 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 
 ### 浏览器 E2E（Playwright）
 
-项目 [`test/BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) 通过 **真实 OIDC Authorization Code + PKCE** 登录 Elsa Studio，验证 UI、多租户切换与工作流生命周期（创建/发布/执行/取消）。使用独立库 `BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E`；`playwright.config.ts` 的 `webServer` 会自动启动演示项目（Development Migrate + Seed）。
+项目 [`test/BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) 通过 **真实 OIDC Authorization Code + PKCE** 登录 Elsa Studio，验证 UI、多租户切换与工作流生命周期（创建/发布/执行/取消）。**不在** `BioTrace.Elsa.Abp.slnx` 内，使用独立 npm 包与 Playwright。
+
+#### 前置条件
+
+| 项 | 说明 |
+|----|------|
+| PostgreSQL | 宿主机：`docker compose up -d`；Dev Container：Compose `postgres` 服务已就绪 |
+| Node.js | 与 Dev Container / CI 一致（E2E 目录 `npm ci`） |
+| Playwright Chromium | `./scripts/test-e2e.sh` 会自动 `playwright install chromium`；Dev Container 在 `postCreateCommand` 中已预装 |
+| HTTPS 证书 | 宿主机首次运行需 `dotnet dev-certs https --trust`（CI 与 Dev Container 已处理） |
+
+E2E 使用独立库 `BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E`（见 `docker/postgres/init`）。`playwright.config.ts` 的 `webServer` 会在每次运行前重建上述库并自动启动演示项目（Development Migrate + Seed），**无需**手动 `dotnet run` Host。
+
+#### 一键运行
 
 ```bash
+# 宿主机（先 docker compose up -d）
 ./scripts/test-e2e.sh
-# 或（Dev Container 内，Postgres 主机为 postgres）
+
+# Dev Container 内（Postgres 主机为 postgres）
 E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
 ```
+
+环境变量（可选）：
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `E2E_POSTGRES_HOST` | `localhost`（或继承 `INTEGRATION_TEST_POSTGRES_HOST`） | PostgreSQL 主机 |
+| `E2E_BASE_URL` | `https://localhost:44388` | 演示项目基址 |
+
+VS Code 任务：**test-e2e**（等价于 `./scripts/test-e2e.sh`）。
+
+#### 本地调试（进入 E2E 目录）
+
+```bash
+cd test/BioTrace.Elsa.Abp.E2E
+npm ci
+npx playwright install chromium
+
+# 仍由 webServer 自动起 Host；仅跑单个 spec：
+npx playwright test tests/studio-smoke.spec.ts
+
+# 可视化调试
+npm run test:e2e:ui
+npm run test:e2e:headed
+
+# 查看 HTML 报告
+npm run show-report
+```
+
+#### 用例概览
+
+| Spec | 场景 |
+|------|------|
+| `auth.setup.ts` | 为各角色执行 OIDC 登录并缓存 `storageState` |
+| `studio-smoke.spec.ts` | `admin` 加载 Studio、打开工作流定义列表 |
+| `studio-tenancy.spec.ts` | 租户 A/B 列表隔离；Host `admin` 切换租户后可见租户 A 演示流 |
+| `studio-permissions.spec.ts` | `tenant-a-designer` 只读不可创建；`tenant-a-admin` 可创建 |
+| `studio-workflow-lifecycle.spec.ts` | 创建 → 发布 → 执行 → 实例完成 |
+| `studio-instance-cancel.spec.ts` | 运行中 Delay 工作流实例取消 |
 
 **E2E 演示账户**（与种子一致）：
 
@@ -359,11 +422,9 @@ E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
 | `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读权限 |
 | `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离 |
 
-CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright Chromium）。
+CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright Chromium）；失败时上传 `playwright-report` 构件。
 
-VS Code 任务：**test-solution**（单元测）、**test-integration**（集成测）、**test-e2e**（浏览器 E2E）。
-
-演示项目 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
+演示项目的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效（集成测专用，E2E 走真实 OIDC）。
 
 在调用方应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「调用方集成清单」）。
 
@@ -448,7 +509,7 @@ PR 合并前三个 job 均须通过。
 1. 版本号对齐：更新 `common.props` 的 `<Version>`（或发布时由 workflow 输入/Tag 覆盖）。
 2. 通过 CI：确保编译、单元测、集成测全部通过。
 3. README 完整：确认模块集成方式、连接串、权限说明与版本策略无误。
-4. 仓库 Secret：在 GitHub 仓库设置 `NUGET_API_KEY`（NuGet.org API Key）。
+4. NuGet Trusted Publishing：在 [nuget.org Trusted Publishing](https://www.nuget.org/account/trustedpublishing) 配置策略（Repository Owner: `BioTrace-1123`，Repository: `BioTrace.Elsa.Abp`，Workflow: `nuget-publish.yml`，Package owner 与下方 Secret 一致）；在 GitHub 仓库 Secrets 设置 `NUGET_USER`（NuGet.org **用户名**，如 `a1mu`，非邮箱）。无需长期 `NUGET_API_KEY`。
 5. 许可证：根目录 `LICENSE`（MIT），NuGet 元数据见 `common.props` 的 `PackageLicenseExpression`。
 
 ### 本地打包验证
@@ -470,7 +531,7 @@ dotnet pack src/BioTrace.Elsa.Abp.AspNetCore/BioTrace.Elsa.Abp.AspNetCore.csproj
 - **手工触发**：`Actions -> NuGet Publish -> Run workflow`，输入版本号（如 `1.2.3`）。
 - **Tag 触发**：推送 `v*.*.*`（如 `v1.2.3`）后自动发布。
 
-工作流会先产出 `artifacts/nuget` 并上传构建产物，再在 `NUGET_API_KEY` 存在时执行 `dotnet nuget push --skip-duplicate`。
+工作流会先产出 `artifacts/nuget` 并上传构建产物，再通过 OIDC（`NuGet/login@v1`）换取短期密钥并执行 `dotnet nuget push --skip-duplicate`。
 
 ## 许可证
 
