@@ -15,6 +15,11 @@ public static class ElsaAbpMultiTenancyConfigurator
 
         elsa.UseTenants(tenants =>
         {
+            tenants.ConfigureTenants(tenantOptions =>
+            {
+                tenantOptions.IsEnabled = true;
+            });
+
             tenants.ConfigureMultitenancy(multitenancy =>
             {
                 multitenancy.TenantResolverPipelineBuilder.Clear();

@@ -1,8 +1,8 @@
 using Elsa.Common.Multitenancy;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Volo.Abp.MultiTenancy;
+using ElsaTenant = Elsa.Common.Multitenancy.Tenant;
 
 namespace BioTrace.Elsa.Abp.MultiTenancy;
 
@@ -14,18 +14,15 @@ public class ElsaAbpMultiTenancyMiddleware
     private readonly RequestDelegate _next;
     private readonly IElsaAbpTenantMapper _tenantMapper;
     private readonly IOptions<ElsaAbpOptions> _options;
-    private readonly ILogger<ElsaAbpMultiTenancyMiddleware> _logger;
 
     public ElsaAbpMultiTenancyMiddleware(
         RequestDelegate next,
         IElsaAbpTenantMapper tenantMapper,
-        IOptions<ElsaAbpOptions> options,
-        ILogger<ElsaAbpMultiTenancyMiddleware> logger)
+        IOptions<ElsaAbpOptions> options)
     {
         _next = next;
         _tenantMapper = tenantMapper;
         _options = options;
-        _logger = logger;
     }
 
     public virtual async Task InvokeAsync(
@@ -41,23 +38,25 @@ public class ElsaAbpMultiTenancyMiddleware
         }
 
         var elsaTenantId = _tenantMapper.ToElsaTenantId(currentTenant.Id);
-        var tenant = await tenantsProvider.FindAsync(TenantFilter.ById(elsaTenantId), context.RequestAborted);
-
-        if (tenant == null)
-        {
-            _logger.LogWarning(
-                "Elsa tenant '{ElsaTenantId}' was not found for ABP tenant '{AbpTenantId}'.",
-                elsaTenantId,
-                currentTenant.Id);
-
-            await _next(context);
-            return;
-        }
+        var tenant = await tenantsProvider.FindAsync(TenantFilter.ById(elsaTenantId), context.RequestAborted)
+            ?? CreateFallbackTenant(elsaTenantId, currentTenant.Name);
 
         using (tenantAccessor.PushContext(tenant))
         {
             await _next(context);
         }
+    }
+
+    protected virtual ElsaTenant CreateFallbackTenant(string elsaTenantId, string? tenantName)
+    {
+        return new ElsaTenant
+        {
+            Id = elsaTenantId,
+            TenantId = elsaTenantId,
+            Name = string.IsNullOrWhiteSpace(tenantName)
+                ? (string.IsNullOrEmpty(elsaTenantId) ? "Host" : elsaTenantId)
+                : tenantName
+        };
     }
 
     protected virtual bool IsElsaRequest(HttpRequest request)

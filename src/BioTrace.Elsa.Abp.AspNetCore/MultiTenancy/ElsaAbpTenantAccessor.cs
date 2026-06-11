@@ -24,7 +24,9 @@ public class ElsaAbpTenantAccessor : ITenantAccessor, ISingletonDependency
 
     public virtual ElsaTenant? Tenant => CurrentTenantField.Value ?? ResolveFromAbp();
 
-    public virtual IDisposable PushContext(ElsaTenant tenant)
+    public virtual string TenantId => Tenant?.TenantId ?? string.Empty;
+
+    public virtual IDisposable PushContext(ElsaTenant? tenant)
     {
         var previous = CurrentTenantField.Value;
         CurrentTenantField.Value = tenant;
