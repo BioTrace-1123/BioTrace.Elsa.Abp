@@ -1,13 +1,13 @@
 # BioTrace.Elsa.Abp
 
-基于 [ABP Framework](https://abp.io/) 的可复用 **Application Module**，在 ABP 宿主应用中集成 [Elsa Workflows](https://elsaworkflows.io/) 3.7（OpenIddict 权限桥接、多租户、Hosted Elsa Studio）。
+基于 [ABP Framework](https://abp.io/) 的可复用模块，**仅**解决在既有 ABP 调用方应用中集成 [Elsa Workflows](https://elsaworkflows.io/) 3.7 与 Elsa Studio（OpenIddict 权限桥接、多租户、同域 Hosted WASM）。**不包含**本模块自有业务实体；ABP 业务库由调用方既有 Identity / OpenIddict / Permission 等模块维护。
 
 ## 文档
 
 | 文档 | 说明 |
 |---|---|
 | [消费方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
-| [消费方配置示例](docs/appsettings.consumer.example.json) | 宿主 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
+| [消费方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
 
 ## 技术栈
@@ -16,9 +16,9 @@
 - ABP 10.4（DDD 模块模板）
 - Entity Framework Core
 - [Elsa Workflows](https://elsaworkflows.io/) **3.7.0**（原生集成，非 ABP Elsa Pro）
-- Entity Framework Core 持久化（Provider 由宿主自选；演示 Host 使用 PostgreSQL）
+- Entity Framework Core 持久化（Provider 由调用方自选；演示项目使用 PostgreSQL）
 
-> Elsa 3.6+ 起 EF 包重命名为 `Elsa.Persistence.EFCore.*`。`BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；宿主需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。
+> Elsa 3.6+ 起 EF 包重命名为 `Elsa.Persistence.EFCore.*`。`BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；调用方需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。
 
 ## 解决方案结构
 
@@ -28,32 +28,33 @@ src/
   BioTrace.Elsa.Abp.Domain
   BioTrace.Elsa.Abp.Application.Contracts
   BioTrace.Elsa.Abp.Application          # 含示例 Activity（PrintMessageActivity）
-  BioTrace.Elsa.Abp.EntityFrameworkCore  # ABP 业务 DbContext（连接名 Default）
-  BioTrace.Elsa.Abp.AspNetCore           # Elsa 服务注册（连接名 Elsa；不含 EF Provider）
+  BioTrace.Elsa.Abp.EntityFrameworkCore  # 演示 Host / 单元测用 ABP DbContext（不发布 NuGet）
+  BioTrace.Elsa.Abp.AspNetCore           # Elsa 集成入口（连接名 Elsa；不含 EF Provider）
   BioTrace.Elsa.Abp.HttpApi
   BioTrace.Elsa.Abp.HttpApi.Client
   BioTrace.Elsa.Abp.Installer
   BioTrace.Elsa.Abp.Studio.BlazorWasm    # Elsa Studio ABP 集成 RCL（租户/权限/组件）
-  BioTrace.Elsa.Abp.Studio.Client        # Elsa Studio WASM 可执行壳（Hosted）
   BioTrace.Elsa.Abp.Studio.AspNetCore    # Hosted WASM 服务端扩展
-host/
-  BioTrace.Elsa.Abp.HttpApi.Host         # 本地验证宿主（含 /studio 托管 Elsa Studio）
+  BioTrace.Elsa.Abp.Studio.Client        # 演示用 Studio WASM 壳（不单独发布 NuGet）
+host/                                    # 仅本地验证，不发布 NuGet
+  BioTrace.Elsa.Abp.HttpApi.Host         # 集成演示与 E2E（含 /studio）
 test/
   BioTrace.Elsa.Abp.TestBase
   BioTrace.Elsa.Abp.AspNetCore.Tests
   BioTrace.Elsa.Abp.Application.Tests
   BioTrace.Elsa.Abp.Domain.Tests
   BioTrace.Elsa.Abp.EntityFrameworkCore.Tests
-  BioTrace.Elsa.Abp.HttpApi.Host.Tests   # Host 集成测（Contributor + OpenIddict + Elsa API）
+  BioTrace.Elsa.Abp.HttpApi.Host.Tests   # 演示项目集成测（Contributor + OpenIddict + Elsa API）
+  BioTrace.Elsa.Abp.E2E                  # Playwright 浏览器 E2E（npm，不在 slnx）
 ```
 
-## 宿主集成清单
+## 调用方集成清单
 
 > 从 NuGet 引用时的逐步教程见 **[消费方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。
 
 引用本模块的 ABP 应用**必须**单独配置 Elsa 数据库；仅引用 NuGet/项目**不会**自动创建 Elsa 表。
 
-1. 在宿主启动模块上添加依赖（**含 EF Provider 模块**，见 [消费方指南](docs/nuget-consumer-guide.md)）：
+1. 在调用方启动模块上添加依赖（**含 EF Provider 模块**，见 [消费方指南](docs/nuget-consumer-guide.md)）：
    ```csharp
    [DependsOn(typeof(MyAppElsaPostgreSqlModule), typeof(AbpHttpApiModule))]
    // MyAppElsaPostgreSqlModule 继承 ElsaAbpAspNetCoreModule 并重写 ConfigureElsaPersistence
@@ -73,15 +74,15 @@ test/
      }
    }
    ```
-3. 在宿主 `OnApplicationInitialization` 中映射 Elsa 中间件（可调用扩展方法 `app.UseElsaWorkflows()`）。
-4. （可选）在宿主模块中继承 `ElsaAbpAspNetCoreModule`，重写 `ConfigureElsaPersistence`（Provider）与 `ConfigureElsaActivities`（Activity）。
-5. Elsa 表由 Elsa EF 迁移维护，**不会**出现在 `AbpDbContext` 的迁移中。
+3. 在调用方 `OnApplicationInitialization` 中映射 Elsa 中间件（可调用扩展方法 `app.UseElsaWorkflows()`）。
+4. （可选）在调用方模块中继承 `ElsaAbpAspNetCoreModule`，重写 `ConfigureElsaPersistence`（Provider）与 `ConfigureElsaActivities`（Activity）。
+5. Elsa 表由 Elsa EF 迁移维护，**不会**出现在调用方 ABP 业务 DbContext 的迁移中。
 
 未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured`；未重写 `ConfigureElsaPersistence` 时抛出 `Abp:ElsaPersistenceNotConfigured`。
 
 ## 安全集成（ABP OpenIddict ↔ Elsa 3.7.0）
 
-本模块**不启用** `Elsa.Identity`，由宿主 **OpenIddict** 签发单一 JWT，同时保护 ABP API 与 Elsa Workflows API（FastEndpoints 校验 Principal 上的 `permissions` Claim）。
+本模块**不启用** `Elsa.Identity`，由调用方 **OpenIddict** 签发单一 JWT，同时保护 ABP API 与 Elsa Workflows API（FastEndpoints 校验 Principal 上的 `permissions` Claim）。
 
 ### 架构要点
 
@@ -90,7 +91,7 @@ test/
 - **单一真相源**：`IElsaAbpEffectivePermissionsProvider` 供 Claims 桥接与 Studio 当前用户 API 共用。
 - **Studio 按钮权限**：勿仅解析 JWT；调用 `GET /api/abp/elsa/current-user`（别名 `GET /identity/users/me`）获取最新 `permissions` 数组。
 
-### Host 演示账户（开发种子）
+### 演示账户（开发种子）
 
 | 用户 | 密码 | 角色 | 说明 |
 |------|------|------|------|
@@ -98,7 +99,7 @@ test/
 
 租户演示账户见下文「多租户」；只读/执行场景请使用 `tenant-a-designer` / `tenant-a-admin`（非 Host 级 `designer`/`operator`）。
 
-开发环境 Host 启动时会自动 **Migrate + Seed**（`ElsaAbpHostDatabaseMigrationHostedService`，仅 Development）。
+开发环境演示项目启动时会自动 **Migrate + Seed**（`ElsaAbpHostDatabaseMigrationHostedService`，仅 Development）。
 
 ### OpenIddict / CORS / Elsa Studio
 
@@ -150,7 +151,7 @@ test/
 
 - ABP 文档：OAuth2 Authorization Code，ClientId `BioTrace_Elsa_Abp_Swagger`，Scope `BioTrace_Elsa_Abp`。
 - Elsa 文档：由 `FastEndpoints.Swagger` 生成，需 **Bearer JWT**（不支持 ABP Swagger 的 OAuth 一键授权）。
-- 开关：`Elsa:EnableElsaSwagger`（与 `EnableWorkflowsApi` 联动；演示 Host 开发环境默认 `true`）。
+- 开关：`Elsa:EnableElsaSwagger`（与 `EnableWorkflowsApi` 联动；演示项目 开发环境默认 `true`）。
 
 **在 Elsa Swagger 中调用 API（获取 Token）**
 
@@ -158,7 +159,7 @@ test/
 2. 亦可先 `POST /api/account/login` 再 Authorize，或对 `/connect/token` 使用已配置的客户端。
 3. 从 OAuth 对话框或浏览器网络面板复制 **access_token**。
 4. 打开 `https://localhost:44388/swagger/elsa`（或在 ABP Swagger 下拉切换到 Elsa 文档），在 **Bearer** 中填入：`Bearer {access_token}`。
-5. 试用 `GET /elsa/api/workflow-definitions`：`admin` 返回 200；`designer` 只读 200；无写权限的变更操作返回 403。
+5. 试用 `GET /elsa/api/workflow-definitions`：`admin` 返回 200；`tenant-a-designer`（租户只读）返回 200；无写权限的变更操作返回 403。
 
 Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 注入的 **`permissions` Claim**（如 `read:workflow-definitions`），不是 ABP 权限名字符串。ABP Swagger 的 `GET /api/abp/elsa/current-user` 仍用于查看当前用户的 Elsa 权限列表。
 
@@ -204,7 +205,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 
 `MultiTenancyConsts.IsEnabled`（Domain.Shared）与上述配置应对齐。API / Studio 请求需携带 ABP 标准 **`__tenant` Header**（或 Query），或依赖 JWT 内 **`tenantid` Claim**（OpenIddict 自动写入）。
 
-### Host 演示租户（开发种子）
+### 演示租户（开发种子）
 
 | 租户 | 用户 | 密码 | 说明 |
 |------|------|------|------|
@@ -217,23 +218,23 @@ Host 级 `admin` 默认只见 **Host 租户**（`TenantId` 为空）下的工作
 
 > **常见现象**
 > - 若流程是在 Host 上下文（未选租户）下创建的，其 `TenantId` 为空，仅 `admin` 在 Host 视图下可见；租户用户列表为空。请切换到目标租户后再创建，或依赖下方演示种子工作流。
-> - 租户用户通过 OIDC 登录时，须在 Host 登录页填写/选择租户（或访问 `https://localhost:44388/Account/Login?__tenant=tenant-a`），否则 Token 可能缺少 `tenantid` Claim，导致权限与工作流隔离失效。
+> - 租户用户通过 OIDC 登录时，须在调用方登录页填写/选择租户（或访问 `https://localhost:44388/Account/Login?__tenant=tenant-a`），否则 Token 可能缺少 `tenantid` Claim，导致权限与工作流隔离失效。
 > - 切换登录账户后 Studio 会强制刷新页面；若仍显示上一用户数据，请先 Logout 再登录。
 
-### 宿主额外依赖（演示）
+### 演示项目 说明（不随 NuGet 发布）
 
-除 `ElsaAbpAspNetCoreModule` 外，演示 Host 引用 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Default` 库（与 Elsa 库仍分离）。
+`host/BioTrace.Elsa.Abp.HttpApi.Host` 为本地验证与 CI 测试用。除本模块外，它还引用调用方常见的 Identity / OpenIddict / PermissionManagement EF 模块，并将 `AbpIdentity`、`AbpOpenIddict`、`AbpPermissionManagement` 连接串指向同一 `ConnectionStrings:Default` 库（与 Elsa 库仍分离）。在**既有**调用方应用中集成时，沿用调用方已有模块即可，无需复制演示项目的全部 DependsOn。
 
-## 本地运行 Host（PostgreSQL）
+## 本地运行演示项目（PostgreSQL）
 
 ```bash
 docker compose up -d
-# 首次或更新 Basic Theme 依赖后：安装 Host 前端库（登录页 /Account/Login 需要）
+# 首次或更新 Basic Theme 依赖后：安装演示项目前端库（登录页 /Account/Login 需要）
 cd host/BioTrace.Elsa.Abp.HttpApi.Host && npm install && cd ../..
 dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 ```
 
-- **演示入口**（Host 启动后手动在浏览器打开）：
+- **演示入口**（演示项目启动后手动在浏览器打开）：
 
   | 地址 | 说明 |
   |------|------|
@@ -246,7 +247,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 ## 运行 Elsa Studio
 
-演示宿主已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 由 **HttpApi.Host 同域 Hosted WASM** 提供，路径为 `/studio`，通过 OpenId Connect 向 Host 换 Token，再调用 Elsa Workflows API。
+演示项目已种子 OpenIddict 公共客户端 `ElsaStudio`（Authorization Code + PKCE）。Studio 由 **HttpApi.Host 同域 Hosted WASM** 提供，路径为 `/studio`，通过 OpenId Connect 向调用方 API 换 Token，再调用 Elsa Workflows API。
 
 > **版本说明**：Elsa Server 与 Studio 前端均为 **3.7.0**（版本由仓库根目录 `Directory.Build.props` 中 `ElsaPackageVersion` 集中管理）。
 
@@ -258,8 +259,8 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 - Studio UI：[https://localhost:44388/studio](https://localhost:44388/studio)（同域 Hosted WASM，勿在末尾多加 `/` 以免部分环境出现重定向循环）
 - WASM 运行时配置：`src/BioTrace.Elsa.Abp.Studio.Client/wwwroot/appsettings.json`（`ElsaStudio:Backend`、`ElsaStudio:Authentication:OpenIdConnect`、`ElsaStudio:Tenancy:Tenants`）
-- Host 托管配置：`host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json` 中 `ElsaStudio:Enabled`、`ElsaStudio:PathBase` 与 `OpenIddict:Applications:ElsaStudio`
-- 登录：OIDC 跳转至 Host `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
+- 演示项目配置：`host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json` 中 `ElsaStudio:Enabled`、`ElsaStudio:PathBase` 与 `OpenIddict:Applications:ElsaStudio`
+- 登录：OIDC 跳转至调用方 `/Account/Login`（Basic Theme）；使用演示账户如 `admin` / `1q2w3E*`（需具备相应 `Abp.Elsa.*` 权限）
 - **多租户**：`BioTrace.Elsa.Abp.Studio.BlazorWasm` 通过 `AbpTenantHeaderDelegatingHandler` 向 Elsa API 与 `identity/users/me` 附加 ABP 标准 `__tenant` Header。Host `admin` 可在右上角下拉切换 `Host` / `Tenant A` / `Tenant B`；租户用户显示只读租户标签。切换后页面会强制刷新以重载工作流列表。
 - VS Code：**F5** 选择 **Launch HttpApi.Host (HTTPS)**，启动后手动打开上表中的演示入口
 
@@ -271,7 +272,7 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 
 1. 克隆仓库并在 VS Code 中打开根目录。
 2. 命令面板执行 **Dev Containers: Reopen in Container**。
-3. 等待 `postCreateCommand` 完成（`dotnet restore`、HTTPS 开发证书、Host 前端依赖等）。
+3. 等待 `postCreateCommand` 完成（`dotnet restore`、HTTPS 开发证书、演示项目前端依赖等）。
 4. **F5** → **Launch HttpApi.Host (HTTPS)**，在浏览器打开 `/studio`、`/swagger`、`/swagger/elsa`。
 
 容器内 PostgreSQL 主机为 Compose 服务名 `postgres`（见 `devcontainer.json` 中的 `ConnectionStrings__*` 与 `INTEGRATION_TEST_POSTGRES_HOST`），无需在容器内单独执行 `docker compose up -d`。集成测可直接运行 `./scripts/test-integration.sh`。
@@ -280,9 +281,9 @@ dotnet run --project host/BioTrace.Elsa.Abp.HttpApi.Host
 |------|------|
 | 端口 `5432` 冲突 | 停止本地 PostgreSQL，或修改根目录 `docker-compose.yml` 端口映射 |
 | HTTPS 证书不受信任 | 容器内执行 `dotnet dev-certs https --trust` |
-| 数据库未就绪 | 等待 Compose 中 `postgres` 健康检查通过后再启动 Host |
+| 数据库未就绪 | 等待 Compose 中 `postgres` 健康检查通过后再启动演示项目 |
 
-不使用 Dev Container 时，按上文「本地运行 Host」在宿主机安装 .NET 10 并运行 `docker compose up -d`。
+不使用 Dev Container 时，按上文「本地运行演示项目」在宿主机安装 .NET 10 并运行 `docker compose up -d`。
 
 ## 本地开发
 
@@ -302,10 +303,10 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 |------|------|------|------|
 | 单元测 | `BioTrace.Elsa.Abp.*.Tests`（含 Mapper/Provider/Contributor） | 无 Postgres | `dotnet test --filter "Category!=Integration"` |
 | Contributor 快测 | [`AspNetCore.Tests`](test/BioTrace.Elsa.Abp.AspNetCore.Tests/) | 无 Postgres | 同上（`ElsaAbpPermissionClaimsPrincipalContributor_Tests`） |
-| Host 集成测 | [`HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) | Postgres | [`./scripts/test-integration.sh`](scripts/test-integration.sh) |
+| 演示项目集成测 | [`HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) | Postgres | [`./scripts/test-integration.sh`](scripts/test-integration.sh) |
 | 浏览器 E2E | [`BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) | Postgres + Playwright | [`./scripts/test-e2e.sh`](scripts/test-e2e.sh) |
 
-### Host 集成测
+### 演示项目集成测
 
 项目 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 通过 `WebApplicationFactory` + **Password Grant 测试客户端**（仅测试配置启用）验证 Contributor 桥接、OpenIddict 验签与 Elsa API 鉴权。
 
@@ -322,11 +323,11 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 | # | 场景 | 断言 |
 |---|------|------|
 | T0 | 无 Bearer Token | `GET /elsa/api/workflow-definitions` → 401 |
-| T1 | designer Password Grant Token | JWT `permissions` **无** `*` / `write:*`（只读用户 token 保持最小权限） |
+| T1 | `tenant-a-designer` Password Grant Token | JWT `permissions` **无** `*` / `write:*`（只读用户 token 保持最小权限） |
 | T2 | admin Password Grant Token | `GET /identity/users/me` → 200，`permissions` 含 `*` |
 | T3 | admin Password Grant Token | `GET /elsa/api/workflow-definitions` → 200 |
-| T4 | designer Token | `current-user` 仅 read claims |
-| T5 | designer Token + `__tenant` | `POST /elsa/api/workflow-definitions` → 403 |
+| T4 | `tenant-a-designer` Token | `current-user` 仅 read claims |
+| T5 | `tenant-a-designer` Token + `__tenant` | `POST /elsa/api/workflow-definitions` → 403 |
 | T6 | 租户 A admin 创建定义 + 租户 B 列表 | 租户 B **不应**看到租户 A 的 `definitionId` |
 | T7 | Host admin 列表 | **不应**看到租户内工作流定义 |
 | T8 | 租户用户 Token | JWT 含 `tenantid` Claim |
@@ -343,7 +344,7 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 
 ### 浏览器 E2E（Playwright）
 
-项目 [`test/BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) 通过 **真实 OIDC Authorization Code + PKCE** 登录 Elsa Studio，验证 UI、多租户切换与工作流生命周期（创建/发布/执行/取消）。使用独立库 `BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E`；`playwright.config.ts` 的 `webServer` 会自动启动 Host（Development Migrate + Seed）。
+项目 [`test/BioTrace.Elsa.Abp.E2E`](test/BioTrace.Elsa.Abp.E2E/) 通过 **真实 OIDC Authorization Code + PKCE** 登录 Elsa Studio，验证 UI、多租户切换与工作流生命周期（创建/发布/执行/取消）。使用独立库 `BioTrace_Abp_E2E`、`BioTrace_Elsa_E2E`；`playwright.config.ts` 的 `webServer` 会自动启动演示项目（Development Migrate + Seed）。
 
 ```bash
 ./scripts/test-e2e.sh
@@ -355,7 +356,7 @@ E2E_POSTGRES_HOST=postgres ./scripts/test-e2e.sh
 
 | 用户 | 密码 | 租户 | 用途 |
 |------|------|------|------|
-| `admin` | `1q2w3E*` | Host | Studio 冒烟、Host 代管租户 |
+| `admin` | `1q2w3E*` | Host（根租户） | Studio 冒烟、根租户上下文代管 |
 | `tenant-a-admin` | `1q2w3E*` | `tenant-a` | 工作流 CRUD/执行/取消 |
 | `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读权限 |
 | `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离 |
@@ -364,9 +365,9 @@ CI：`e2e-tests` job（Postgres + `dotnet dev-certs https --trust` + Playwright 
 
 VS Code 任务：**test-solution**（单元测）、**test-integration**（集成测）、**test-e2e**（浏览器 E2E）。
 
-演示 Host 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
+演示项目 的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效。
 
-在宿主应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「宿主集成清单」）。
+在调用方应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「调用方集成清单」）。
 
 ## Git Flow
 
@@ -409,31 +410,40 @@ git push -u origin develop
 | Job | 内容 |
 |-----|------|
 | `build-and-test` | 编译 + **单元测**（`Category!=Integration`，不依赖 Postgres） |
-| `integration-tests` | **Host 集成测**（GHA `postgres:15-alpine` service，T0–T5） |
+| `integration-tests` | **演示项目集成测**（GHA `postgres:15-alpine` service，T0–T8） |
+| `e2e-tests` | **Playwright 浏览器 E2E**（Postgres + Chromium，OIDC + Studio 全链路） |
 
-PR 合并前两个 job 均须通过。
+PR 合并前三个 job 均须通过。
 
 ## NuGet 发布准备
 
-仓库已提供统一打包元数据（见 `common.props`）与发布工作流 [`.github/workflows/nuget-publish.yml`](.github/workflows/nuget-publish.yml)，用于将模块各层按同版本发布到 NuGet.org。
+仓库已提供统一打包元数据（见 `common.props`）与发布工作流 [`.github/workflows/nuget-publish.yml`](.github/workflows/nuget-publish.yml)。**仅发布 Elsa / Studio 集成相关库**；`host/` 与 `test/` 不打包。
 
 消费方如何安装包、配置数据库与权限，见 **[消费方集成指南](docs/nuget-consumer-guide.md)**。
 
+### 消费方直接引用（典型）
+
+| 场景 | 在调用方项目中显式引用的包 |
+|------|--------------------------|
+| Elsa Workflows API + 权限桥接 | `BioTrace.Elsa.Abp.AspNetCore`、`BioTrace.Elsa.Abp.HttpApi` |
+| Elsa EF 持久化 | 调用方自选 `Elsa.Persistence.EFCore.{PostgreSql\|SqlServer\|Sqlite}`（3.7.0） |
+| 同域托管 Elsa Studio | `BioTrace.Elsa.Abp.Studio.BlazorWasm`、`BioTrace.Elsa.Abp.Studio.AspNetCore` |
+
+`AspNetCore` 会传递依赖 `Application`、`Domain`、`Application.Contracts`、`Domain.Shared`，一般无需逐个安装。调用方**已有** ABP Identity / OpenIddict / Permission 的 EF 模块即可，**无需**引用本仓库的 `EntityFrameworkCore` 项目。
+
 ### 将会发布的包
 
-| 项目 | 包名 |
-|---|---|
-| `BioTrace.Elsa.Abp.Domain.Shared` | `BioTrace.Elsa.Abp.Domain.Shared` |
-| `BioTrace.Elsa.Abp.Domain` | `BioTrace.Elsa.Abp.Domain` |
-| `BioTrace.Elsa.Abp.Application.Contracts` | `BioTrace.Elsa.Abp.Application.Contracts` |
-| `BioTrace.Elsa.Abp.Application` | `BioTrace.Elsa.Abp.Application` |
-| `BioTrace.Elsa.Abp.HttpApi` | `BioTrace.Elsa.Abp.HttpApi` |
-| `BioTrace.Elsa.Abp.HttpApi.Client` | `BioTrace.Elsa.Abp.HttpApi.Client` |
-| `BioTrace.Elsa.Abp.EntityFrameworkCore` | `BioTrace.Elsa.Abp.EntityFrameworkCore` |
-| `BioTrace.Elsa.Abp.AspNetCore` | `BioTrace.Elsa.Abp.AspNetCore` |
-| `BioTrace.Elsa.Abp.Studio.BlazorWasm` | `BioTrace.Elsa.Abp.Studio.BlazorWasm` |
-| `BioTrace.Elsa.Abp.Studio.AspNetCore` | `BioTrace.Elsa.Abp.Studio.AspNetCore` |
-| `BioTrace.Elsa.Abp.Installer` | `BioTrace.Elsa.Abp.Installer` |
+| 包名 | 说明 |
+|------|------|
+| `BioTrace.Elsa.Abp.AspNetCore` | **集成入口**（Elsa 注册、权限桥接、多租户） |
+| `BioTrace.Elsa.Abp.HttpApi` | `current-user` 等 ABP API |
+| `BioTrace.Elsa.Abp.Studio.BlazorWasm` | Studio UI 与 ABP 租户/权限组件 |
+| `BioTrace.Elsa.Abp.Studio.AspNetCore` | 调用方内嵌 `/studio` 扩展 |
+| `BioTrace.Elsa.Abp.Application` | 示例 Activity 等（`AspNetCore` 传递） |
+| `BioTrace.Elsa.Abp.Application.Contracts` | 权限常量、DTO（传递或单独引用） |
+| `BioTrace.Elsa.Abp.Domain` / `Domain.Shared` | 选项与常量（传递） |
+| `BioTrace.Elsa.Abp.HttpApi.Client` | 可选：动态 API 代理 |
+| `BioTrace.Elsa.Abp.Installer` | 可选：ABP CLI 安装元数据 |
 
 ### 发布前检查清单
 

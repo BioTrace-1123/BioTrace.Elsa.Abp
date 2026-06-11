@@ -10,7 +10,7 @@ alwaysApply: false
 
 - 使用 **原生 Elsa 3.x** NuGet，不依赖 `Volo.Abp.Elsa.*`（Elsa Pro）。
 - Elsa **不**映射到 `AbpDbContext`；持久化使用 Elsa 自带 Management/Runtime DbContext 与迁移。
-- `OnApplicationInitialization` 中的 Elsa 中间件（`UseElsaWorkflows` / `UseWorkflowsApi`）**仅写在 Host**，可复用模块只注册 `AddElsa` 服务。
+- `OnApplicationInitialization` 中的 Elsa 中间件（`UseElsaWorkflows` / `UseWorkflowsApi`）**仅写在调用方应用**，可复用模块只注册 `AddElsa` 服务。
 
 ## NuGet 版本（必须成套）
 
@@ -21,9 +21,9 @@ alwaysApply: false
 ## 持久化 Provider（消费方自选）
 
 - `BioTrace.Elsa.Abp.AspNetCore` **不**引用 `Elsa.Persistence.EFCore.PostgreSql` 等 Provider 包。
-- 宿主引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并继承 `ElsaAbpAspNetCoreModule`，重写 **`ConfigureElsaPersistence`**。
+- 调用方引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并继承 `ElsaAbpAspNetCoreModule`，重写 **`ConfigureElsaPersistence`**。
 - 未重写时启动抛出 `Abp:ElsaPersistenceNotConfigured`。
-- 演示 Host：[`ElsaAbpHostPostgreSqlModule`](host/BioTrace.Elsa.Abp.HttpApi.Host/ElsaAbpHostPostgreSqlModule.cs)。
+- 演示项目：[`ElsaAbpHostPostgreSqlModule`](host/BioTrace.Elsa.Abp.HttpApi.Host/ElsaAbpHostPostgreSqlModule.cs)。
 
 ## 连接串
 
@@ -50,8 +50,8 @@ alwaysApply: false
 - 核心类型：`ElsaAbpTenantMapper`、`ElsaAbpTenantsProvider`、`ElsaAbpCurrentTenantResolver`、`ElsaAbpTenantAccessor`、`ElsaAbpMultiTenancyMiddleware`。
 - 管道：`UseMultiTenancy()` → `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
 
-## 宿主集成清单
+## 调用方集成清单
 
 1. 自定义模块继承 `ElsaAbpAspNetCoreModule` 并实现 `ConfigureElsaPersistence`（多租户时 `[DependsOn(typeof(ElsaAbpMultiTenancyModule))]`）
 2. 配置 `ConnectionStrings:Elsa` 与 `Elsa` 节点
-3. Host 管道：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `app.UseElsaWorkflows()`
+3. 调用方管道：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `app.UseElsaWorkflows()`

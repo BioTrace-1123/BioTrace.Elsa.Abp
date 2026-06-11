@@ -4,6 +4,6 @@
     "MyAccount": "我的账户",
     "SamplePageMessage": "Abp 模块的示例页面",
     "Abp:ElsaConnectionStringNotConfigured": "未配置连接串 '{ConnectionStringName}'，请在 appsettings 的 ConnectionStrings 中添加。",
-    "Abp:ElsaPersistenceNotConfigured": "未配置 Elsa EF Core 持久化。请在宿主项目中引用 Elsa.Persistence.EFCore.{Provider} 并重写 ElsaAbpAspNetCoreModule.ConfigureElsaPersistence。"
+    "Abp:ElsaPersistenceNotConfigured": "未配置 Elsa EF Core 持久化。请在调用方项目中引用 Elsa.Persistence.EFCore.{Provider} 并重写 ElsaAbpAspNetCoreModule.ConfigureElsaPersistence。"
   }
 }
