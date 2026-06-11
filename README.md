@@ -441,7 +441,7 @@ PR 合并前三个 job 均须通过。
 | `BioTrace.Elsa.Abp.Application.Contracts` | 权限常量、DTO（传递或单独引用） |
 | `BioTrace.Elsa.Abp.Domain` / `Domain.Shared` | 选项与常量（传递） |
 | `BioTrace.Elsa.Abp.HttpApi.Client` | 可选：动态 API 代理 |
-| `BioTrace.Elsa.Abp.Installer` | 可选：ABP CLI 安装元数据 |
+| `BioTrace.Elsa.Abp.Installer` | 可选：ABP CLI / Studio 安装元数据（`abp add-module BioTrace.Elsa.Abp`） |
 
 ### 发布前检查清单
 

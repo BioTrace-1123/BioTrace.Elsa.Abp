@@ -98,7 +98,7 @@ public class MyAppElsaPostgreSqlModule : ElsaAbpAspNetCoreModule
 | 场景 | 包 |
 |---|---|
 | 前端/其他服务调用 ABP API 代理 | `BioTrace.Elsa.Abp.HttpApi.Client` |
-| ABP CLI / Suite 安装模块元数据 | `BioTrace.Elsa.Abp.Installer` |
+| ABP CLI / Studio 安装模块元数据 | `BioTrace.Elsa.Abp.Installer`（安装命令：`abp add-module BioTrace.Elsa.Abp` 或 Studio **Install module**） |
 | 仅需 DTO/权限常量（类库） | `BioTrace.Elsa.Abp.Application.Contracts` |
 | **多租户**（ABP TenantManagement + Elsa 行级隔离） | `ElsaAbpMultiTenancyModule`（在 `BioTrace.Elsa.Abp.AspNetCore` 包内）+ ABP TenantManagement 包（见下文） |
 

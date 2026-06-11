@@ -24,6 +24,12 @@
       <Pack>true</Pack>
       <PackagePath>content\</PackagePath>
     </Content>
+    <Content Remove="..\..\src\BioTrace.Elsa.Abp.EntityFrameworkCore\**\*.abppkg*" />
+    <Content Remove="..\..\test\BioTrace.Elsa.Abp.EntityFrameworkCore.Tests\**\*.abppkg*" />
+    <Content Include="InstallationNotes.md">
+      <Pack>true</Pack>
+      <PackagePath>content\</PackagePath>
+    </Content>
   </ItemGroup>
 
 </Project>
