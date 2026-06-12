@@ -7,6 +7,7 @@
 | 文档 | 说明 |
 |---|---|
 | [调用方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
+| [通过 ABP CLI 安装](#通过-abp-cli--abp-studio-安装) | `abp add-module` 一键添加包引用与模块依赖 |
 | [调用方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
 | [浏览器 E2E（Playwright）](#浏览器-e2eplaywright) | Studio OIDC 全链路、多租户与权限的自动化验证 |
@@ -51,7 +52,7 @@ test/
 
 ## 调用方集成清单
 
-> 从 NuGet 引用时的逐步教程见 **[调用方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。
+> 从 NuGet 引用时的逐步教程见 **[调用方集成指南](docs/nuget-consumer-guide.md)**；配置模板见 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。若偏好 CLI，可先执行 [`abp add-module BioTrace.Elsa.Abp`](#通过-abp-cli--abp-studio-安装) 添加包与 `[DependsOn]`，再完成下文手动步骤。
 
 引用本模块的 ABP 应用**必须**单独配置 Elsa 连接串与持久化；Elsa 工作流库与 ABP 业务库分离维护。
 
@@ -79,6 +80,80 @@ test/
 5. Elsa 工作流数据由 Elsa 持久化层维护，**不会**写入调用方 ABP 业务 DbContext。
 
 未配置 `ConnectionStrings:Elsa` 时，启动将抛出 `Abp:ElsaConnectionStringNotConfigured`；未重写 `ConfigureElsaPersistence` 时抛出 `Abp:ElsaPersistenceNotConfigured`。
+
+## 通过 ABP CLI / ABP Studio 安装
+
+除手动添加 NuGet 包外，调用方可在**既有 ABP 解决方案**中使用 [ABP CLI](https://abp.io/docs/latest/cli) 或 [ABP Studio](https://abp.io/docs/latest/studio) 安装本模块。安装元数据由 `BioTrace.Elsa.Abp.Installer` 包提供（仓库根目录 `BioTrace.Elsa.Abp.abpmdl` 与各项目 `.abppkg`）。
+
+### 安装 ABP CLI
+
+```bash
+# 首次安装（全局工具）
+dotnet tool install -g Volo.Abp.Cli
+
+# 升级
+dotnet tool update -g Volo.Abp.Cli
+
+abp --version
+```
+
+CLI 版本应与调用方 ABP 主版本对齐（当前模块基于 **ABP 10.4**）。详见 [官方 CLI 文档](https://abp.io/docs/latest/cli)。
+
+### 在调用方解决方案中安装模块
+
+在调用方解决方案根目录执行：
+
+```bash
+cd /path/to/your-abp-solution
+abp add-module BioTrace.Elsa.Abp
+```
+
+或在 **ABP Studio** 解决方案资源管理器中：**Install module** → 搜索并选择 `BioTrace.Elsa.Abp`。
+
+CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `.abppkg` 的 `role` 向对应层项目添加 NuGet 引用，并在启动模块上写入 `[DependsOn(...)]`（典型包括 `BioTrace.Elsa.Abp.AspNetCore`、`BioTrace.Elsa.Abp.HttpApi` 及传递依赖层；Studio 相关包按项目角色挂载）。
+
+> **注意**：安装器**不会**添加 `BioTrace.Elsa.Abp.EntityFrameworkCore`（该层仅用于本仓库演示 Host，不发布 NuGet），也**不会**添加 `Elsa.Persistence.EFCore.{Provider}` 或 ABP Identity / OpenIddict / Permission 官方包——这些由调用方既有模块或下文「安装后必做」步骤自行配置。
+
+### CLI 自动完成 vs 仍需手动配置
+
+| 步骤 | CLI / Studio | 调用方手动 |
+|------|--------------|------------|
+| 添加本模块 NuGet 与 `[DependsOn]` | ✅ | — |
+| 引用 `Elsa.Persistence.EFCore.{Provider}` | ❌ | ✅ 自选 Provider |
+| 继承 `ElsaAbpAspNetCoreModule` 并重写 `ConfigureElsaPersistence` | ❌ | ✅ |
+| 配置 `ConnectionStrings:Default` 与 `ConnectionStrings:Elsa` | ❌ | ✅ |
+| Host 管道：`UseMultiTenancy()` → `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()` | ❌ | ✅ |
+| 角色授予 `Abp.Elsa.*` 权限 | ❌ | ✅ |
+| Elsa Studio（可选）：`ElsaStudio` / OpenIddict 客户端与 WASM 注册 | ❌ | ✅ |
+
+完整步骤与配置模板见 **[调用方集成指南](docs/nuget-consumer-guide.md)** 与 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。安装包内嵌说明见 [`InstallationNotes.md`](src/BioTrace.Elsa.Abp.Installer/InstallationNotes.md)。
+
+### 其他常用 CLI 命令（调用方）
+
+```bash
+# 为 HttpApi.Client 生成 C# 动态 API 代理（Host 需已启动）
+abp generate-proxy -t csharp -u https://localhost:44300
+
+# MVC / Blazor Server 前端库（若调用方使用 Basic Theme 等）
+abp install-libs
+
+# 查看命令帮助
+abp help add-module
+abp help generate-proxy
+```
+
+Angular / JavaScript 代理生成见 [generate-proxy 文档](https://abp.io/docs/latest/cli#generate-proxy)。
+
+### 本仓库维护者
+
+开发本模块时可使用 CLI 维护解决方案 hygiene，**无需**对当前仓库执行 `abp add-module`（模块源码即在本仓库内）：
+
+```bash
+abp clean          # 清理 bin/obj
+abp update         # 升级 Volo.Abp.* 包（发版前请对照 common.props 与 CI）
+```
+
+修改 `.abpmdl` / `.abppkg` 或 Installer 后，请在调用方测试环境验证 `abp add-module BioTrace.Elsa.Abp` 是否仍正确挂载包与依赖。
 
 ## 安全集成（ABP OpenIddict ↔ Elsa 3.7.0）
 
