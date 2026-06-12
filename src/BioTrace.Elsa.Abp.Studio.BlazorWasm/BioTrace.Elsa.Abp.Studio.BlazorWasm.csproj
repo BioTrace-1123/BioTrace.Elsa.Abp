@@ -27,4 +27,12 @@
     <ProjectReference Include="..\BioTrace.Elsa.Abp.Application.Contracts\BioTrace.Elsa.Abp.Application.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="build\default-wwwroot\index.html">
+      <Pack>true</Pack>
+      <PackagePath>content\wwwroot</PackagePath>
+    </None>
+    <None Include="build\BioTrace.Elsa.Abp.Studio.BlazorWasm.targets" Pack="true" PackagePath="buildTransitive" />
+  </ItemGroup>
+
 </Project>
