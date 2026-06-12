@@ -1,4 +1,5 @@
 import type { Page, Response } from '@playwright/test';
+import { E2E_TIMEOUTS } from '../timeouts';
 
 async function waitForSuccessfulApiResponse(
   page: Page,
@@ -20,7 +21,7 @@ async function waitForSuccessfulApiResponse(
 }
 
 export async function waitForDefinitionsReady(page: Page): Promise<void> {
-  await page.waitForURL(/\/studio\/workflows\/definitions/, { timeout: 60_000 });
+  await page.waitForURL(/\/studio\/workflows\/definitions/, { timeout: E2E_TIMEOUTS.studioPage });
 
   const definitionsUi = page
     .getByRole('button', { name: /create|new workflow/i })
@@ -32,7 +33,7 @@ export async function waitForDefinitionsReady(page: Page): Promise<void> {
   if (!(await definitionsUi.isVisible().catch(() => false))) {
     const responsePromise = page.waitForResponse(
       (candidate) => candidate.url().includes('/elsa/api/workflow-definitions') && candidate.ok(),
-      { timeout: 60_000 },
+      { timeout: E2E_TIMEOUTS.studioPage },
     );
     await page.reload();
     const response = await responsePromise;
@@ -43,11 +44,11 @@ export async function waitForDefinitionsReady(page: Page): Promise<void> {
     }
   }
 
-  await definitionsUi.waitFor({ state: 'visible', timeout: 60_000 });
+  await definitionsUi.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.studioPage });
 }
 
 export async function waitForInstancesReady(page: Page): Promise<void> {
-  await page.waitForURL(/\/studio\/workflows\/instances/, { timeout: 60_000 });
+  await page.waitForURL(/\/studio\/workflows\/instances/, { timeout: E2E_TIMEOUTS.studioPage });
 
   const instancesUi = page
     .getByRole('table')
@@ -58,7 +59,7 @@ export async function waitForInstancesReady(page: Page): Promise<void> {
   if (!(await instancesUi.isVisible().catch(() => false))) {
     const responsePromise = page.waitForResponse(
       (candidate) => candidate.url().includes('/elsa/api/workflow-instances') && candidate.ok(),
-      { timeout: 60_000 },
+      { timeout: E2E_TIMEOUTS.studioPage },
     );
     await page.reload();
     const response = await responsePromise;
@@ -69,5 +70,5 @@ export async function waitForInstancesReady(page: Page): Promise<void> {
     }
   }
 
-  await instancesUi.waitFor({ state: 'visible', timeout: 60_000 });
+  await instancesUi.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.studioPage });
 }

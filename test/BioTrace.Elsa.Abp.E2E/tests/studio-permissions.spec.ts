@@ -1,4 +1,5 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
+import { E2E_TIMEOUTS } from '../timeouts';
 import { TestData } from '../test-data';
 
 test.describe('Studio permissions (designer)', () => {
@@ -21,7 +22,7 @@ test.describe('Studio permissions (designer)', () => {
 
     await studioDefinitions.clickCreateWorkflow();
     const dialog = page.getByRole('dialog');
-    await dialog.waitFor({ state: 'visible', timeout: 30_000 });
+    await dialog.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.ui });
     await expect(dialog.getByText(/do not have permission to create workflow definitions/i)).toBeVisible();
     await expect(dialog.getByRole('button', { name: /^ok$/i })).toBeDisabled();
   });
