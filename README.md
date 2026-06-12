@@ -7,7 +7,7 @@
 | 文档 | 说明 |
 |---|---|
 | [调用方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
-| [通过 ABP CLI 安装](#通过-abp-cli--abp-studio-安装) | `abp add-module` 一键添加包引用与模块依赖 |
+| [Installer / `abp add-module`](#通过-abp-cli--abp-studio-安装) | 本模块安装器行为与安装后必做步骤 |
 | [调用方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
 | [浏览器 E2E（Playwright）](#浏览器-e2eplaywright) | Studio OIDC 全链路、多租户与权限的自动化验证 |
@@ -15,7 +15,7 @@
 ## 技术栈
 
 - .NET 10
-- ABP 10.4（DDD 模块模板）
+- ABP 10.4
 - Entity Framework Core
 - [Elsa Workflows](https://elsaworkflows.io/) **3.7.0**（原生集成，非 ABP Elsa Pro）
 - Entity Framework Core 持久化（Provider 由调用方自选；演示项目使用 PostgreSQL）
@@ -83,41 +83,24 @@ test/
 
 ## 通过 ABP CLI / ABP Studio 安装
 
-除手动添加 NuGet 包外，调用方可在**既有 ABP 解决方案**中使用 [ABP CLI](https://abp.io/docs/latest/cli) 或 [ABP Studio](https://abp.io/docs/latest/studio) 安装本模块。安装元数据由 `BioTrace.Elsa.Abp.Installer` 包提供（仓库根目录 `BioTrace.Elsa.Abp.abpmdl` 与各项目 `.abppkg`）。
-
-### 安装 ABP CLI
+调用方在既有 ABP 解决方案根目录执行：
 
 ```bash
-# 首次安装（全局工具）
-dotnet tool install -g Volo.Abp.Cli
-
-# 升级
-dotnet tool update -g Volo.Abp.Cli
-
-abp --version
-```
-
-CLI 版本应与调用方 ABP 主版本对齐（当前模块基于 **ABP 10.4**）。详见 [官方 CLI 文档](https://abp.io/docs/latest/cli)。
-
-### 在调用方解决方案中安装模块
-
-在调用方解决方案根目录执行：
-
-```bash
-cd /path/to/your-abp-solution
 abp add-module BioTrace.Elsa.Abp
 ```
 
-或在 **ABP Studio** 解决方案资源管理器中：**Install module** → 搜索并选择 `BioTrace.Elsa.Abp`。
+或在 ABP Studio 中 **Install module** → 选择 `BioTrace.Elsa.Abp`。安装元数据由 `BioTrace.Elsa.Abp.Installer` 提供（`BioTrace.Elsa.Abp.abpmdl` 与各 `.abppkg`）。
 
-CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `.abppkg` 的 `role` 向对应层项目添加 NuGet 引用，并在启动模块上写入 `[DependsOn(...)]`（典型包括 `BioTrace.Elsa.Abp.AspNetCore`、`BioTrace.Elsa.Abp.HttpApi` 及传递依赖层；Studio 相关包按项目角色挂载）。
+> ABP CLI / Studio 本身的安装与升级请参阅 [ABP 官方文档](https://abp.io/docs/latest/cli)。本节仅说明**本模块**安装器会做什么、不会做什么。
 
-> **注意**：安装器**不会**添加 `BioTrace.Elsa.Abp.EntityFrameworkCore`（该层仅用于本仓库演示 Host，不发布 NuGet），也**不会**添加 `Elsa.Persistence.EFCore.{Provider}` 或 ABP Identity / OpenIddict / Permission 官方包——这些由调用方既有模块或下文「安装后必做」步骤自行配置。
+安装器会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `.abppkg` 的 `role` 向对应层项目添加 NuGet 引用，并在启动模块写入 `[DependsOn(...)]`（典型包括 `BioTrace.Elsa.Abp.AspNetCore`、`BioTrace.Elsa.Abp.HttpApi` 及传递依赖；Studio 相关包按项目角色挂载）。
 
-### CLI 自动完成 vs 仍需手动配置
+> **注意**：安装器**不会**添加 `BioTrace.Elsa.Abp.EntityFrameworkCore`（仅本仓库演示 Host，不发布 NuGet）、`Elsa.Persistence.EFCore.{Provider}`，也不会代为配置 Identity / OpenIddict / Permission——见 [调用方集成指南](docs/nuget-consumer-guide.md)。
 
-| 步骤 | CLI / Studio | 调用方手动 |
-|------|--------------|------------|
+### 安装器自动完成 vs 调用方手动配置
+
+| 步骤 | 安装器 | 调用方手动 |
+|------|--------|------------|
 | 添加本模块 NuGet 与 `[DependsOn]` | ✅ | — |
 | 引用 `Elsa.Persistence.EFCore.{Provider}` | ❌ | ✅ 自选 Provider |
 | 继承 `ElsaAbpAspNetCoreModule` 并重写 `ConfigureElsaPersistence` | ❌ | ✅ |
@@ -126,32 +109,7 @@ CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `
 | 角色授予 `Abp.Elsa.*` 权限 | ❌ | ✅ |
 | Elsa Studio（可选）：`ElsaStudio` / OpenIddict 客户端与 WASM 注册 | ❌ | ✅ |
 
-完整步骤与配置模板见 **[调用方集成指南](docs/nuget-consumer-guide.md)** 与 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。安装包内嵌说明见 [`InstallationNotes.md`](src/BioTrace.Elsa.Abp.Installer/InstallationNotes.md)。
-
-### 其他常用 CLI 命令（调用方）
-
-```bash
-# 为 HttpApi.Client 生成 C# 动态 API 代理（Host 需已启动）
-abp generate-proxy -t csharp -u https://localhost:44300
-
-# MVC / Blazor Server 前端库（若调用方使用 Basic Theme 等）
-abp install-libs
-
-# 查看命令帮助
-abp help add-module
-abp help generate-proxy
-```
-
-Angular / JavaScript 代理生成见 [generate-proxy 文档](https://abp.io/docs/latest/cli#generate-proxy)。
-
-### 本仓库维护者
-
-开发本模块时可使用 CLI 维护解决方案 hygiene，**无需**对当前仓库执行 `abp add-module`（模块源码即在本仓库内）：
-
-```bash
-abp clean          # 清理 bin/obj
-abp update         # 升级 Volo.Abp.* 包（发版前请对照 common.props 与 CI）
-```
+完整步骤与配置模板见 **[调用方集成指南](docs/nuget-consumer-guide.md)** 与 **[appsettings.consumer.example.json](docs/appsettings.consumer.example.json)**。安装包内说明见 [`InstallationNotes.md`](src/BioTrace.Elsa.Abp.Installer/InstallationNotes.md)。
 
 修改 `.abpmdl` / `.abppkg` 或 Installer 后，请在调用方测试环境验证 `abp add-module BioTrace.Elsa.Abp` 是否仍正确挂载包与依赖。
 
@@ -500,28 +458,6 @@ npm run show-report
 CI：`e2e-tests` job（Postgres + `dotnet dev-certs https` + Playwright Chromium，`ignoreHTTPSErrors` 无需系统信任）；失败时上传 `playwright-report` 构件。
 
 演示项目的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效（集成测专用，E2E 走真实 OIDC）。
-
-在调用方应用中除 `AbpHttpApiModule` 外，还需引用 `ElsaAbpAspNetCoreModule`（见上文「调用方集成清单」）。
-
-## Git Flow
-
-本仓库采用 **Git Flow**：
-
-| 分支 | 说明 |
-|------|------|
-| `main` | 生产就绪；仅通过 `release/*`、`hotfix/*` 合并 |
-| `develop` | 日常集成；`feature/*` 合并目标 |
-| `feature/*` | 新功能（从 `develop` 拉出） |
-| `release/*` | 发版准备（合并到 `main` 与 `develop`） |
-| `hotfix/*` | 生产紧急修复（从 `main` 拉出） |
-
-日常开发请基于 `develop` 创建功能分支，详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-```bash
-git checkout develop
-git pull origin develop
-git checkout -b feature/my-feature
-```
 
 ## 在 GitHub 上发布
 
