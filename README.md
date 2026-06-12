@@ -130,9 +130,14 @@ abp add-module BioTrace.Elsa.Abp
 |------|------|------|------|
 | `admin` | `1q2w3E*` | admin | `Abp.Elsa.Admin` → Elsa `*` |
 
-租户演示账户见下文「多租户」；只读/执行场景请使用 `tenant-a-designer` / `tenant-a-admin`（非 Host 级 `designer`/`operator`）。
+租户演示账户见下文「多租户」；只读场景用 `tenant-a-designer`，写/执行用 `tenant-a-admin`（角色在**租户内** `designer` / `admin`，非 Host 级）。
 
-开发环境演示项目启动时会自动 **Migrate + Seed**（`ElsaAbpHostDatabaseMigrationHostedService`，仅 Development）。
+开发环境（`ASPNETCORE_ENVIRONMENT=Development`）演示项目 `Program.cs` 在 `InitializeApplicationAsync` 之后依次执行：
+
+1. **`ElsaAbpHostDatabaseMigrationHostedService`** — 迁移 ABP 业务库（`AbpDbContext`、Identity、OpenIddict、Permission、TenantManagement）
+2. **`ElsaAbpElsaDatabaseMigrationHostedService`** — 迁移 Elsa 工作流库
+3. **`IDataSeeder`** — 种子数据（Host `admin`、OpenIddict 客户端、租户与用户等）
+4. **`ElsaAbpTenantDemoWorkflowSeeder`** — 演示租户工作流定义
 
 ### OpenIddict / CORS / Elsa Studio
 
@@ -205,7 +210,7 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 | `Abp.Elsa.WorkflowDefinitions.Write` | `write:workflow-definitions` |
 | `Abp.Elsa.WorkflowDefinitions.Publish` | `publish:workflow-definitions` |
 | `Abp.Elsa.WorkflowInstances.Execute` | `execute:workflow-instances` |
-| `Abp.Elsa.NotReadOnly` | 满足 ASP.NET `NotReadOnlyPolicy`（非 Claim） |
+| `Abp.Elsa.NotReadOnly` | 满足 Elsa `NotReadOnlyRequirement`（`AbpElsaNotReadOnlyAuthorizationHandler` 扩展，非 Claim） |
 
 完整常量见 `AbpElsaPermissions` 与 `ElsaApiPermissionNames`（`Application.Contracts`）。
 
@@ -241,10 +246,11 @@ Elsa API 校验的是请求时由 `ElsaAbpPermissionClaimsPrincipalContributor` 
 
 | 租户 | 用户 | 密码 | 说明 |
 |------|------|------|------|
-| `tenant-a` | `tenant-a-admin` | `1q2w3E*` | 租户管理员，含 Elsa 写权限 |
-| `tenant-a` | `tenant-a-designer` | `1q2w3E*` | 租户只读 designer |
-| `tenant-b` | `tenant-b-admin` | `1q2w3E*` | 用于隔离验证 |
-| Host | `admin` | `1q2w3E*` | Host 管理员（`Abp.Elsa.Admin` → `*`） |
+| `tenant-a` | `tenant-a-admin` | `1q2w3E*` | 租户内 `admin` 角色，写/执行/取消等 Elsa 权限 |
+| `tenant-a` | `tenant-a-designer` | `1q2w3E*` | 租户内 `designer` 角色，只读 |
+| `tenant-b` | `tenant-b-admin` | `1q2w3E*` | 租户内 `admin` 角色，用于隔离验证 |
+| `tenant-b` | `tenant-b-designer` | `1q2w3E*` | 租户内 `designer` 角色，只读（E2E 未覆盖） |
+| Host | `admin` | `1q2w3E*` | Host 级 `admin` 角色（`Abp.Elsa.Admin` → `*`） |
 
 Host 级 `admin` 默认只见 **Host 租户**（`TenantId` 为空）下的工作流；在 Elsa Studio 右上角租户下拉中选择 `Tenant A` 后，出站请求会自动附加 `__tenant: tenant-a`，此时应只看到 Tenant A 的流程（`ElsaAbpMultiTenancyModule` 在 ABP 租户解析链最前为 Host 用户启用 `__tenant` 头覆盖，避免 `CurrentUser` 解析抢先锁定 Host 上下文）。租户用户（如 `tenant-a-admin`）登录后自动锁定所属租户并附带同名 Header。
 
@@ -359,19 +365,24 @@ dotnet test BioTrace.Elsa.Abp.slnx --filter "Category!=Integration"
 | ClientSecret | `integration-test-secret` |
 | 开关 | `AuthServer:AllowPasswordGrantForIntegrationTests=true` |
 
-**用例矩阵（T0–T5）**
+**用例矩阵（T0–T11）**
+
+对应 [`ElsaAbpPermissionBridgeIntegrationTests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/Security/ElsaAbpPermissionBridgeIntegrationTests.cs) 与 [`ElsaAbpMultiTenancyIntegrationTests`](test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/MultiTenancy/ElsaAbpMultiTenancyIntegrationTests.cs)：
 
 | # | 场景 | 断言 |
 |---|------|------|
 | T0 | 无 Bearer Token | `GET /elsa/api/workflow-definitions` → 401 |
-| T1 | `tenant-a-designer` Password Grant Token | JWT `permissions` **无** `*` / `write:*`（只读用户 token 保持最小权限） |
-| T2 | admin Password Grant Token | `GET /identity/users/me` → 200，`permissions` 含 `*` |
+| T1 | `tenant-a-designer` Password Grant Token | JWT `permissions` **无** `*` / `write:workflow-definitions` |
+| T2 | admin Password Grant Token + `__tenant: tenant-a` | `GET /identity/users/me` → 200，`permissions` 含 `*` |
 | T3 | admin Password Grant Token | `GET /elsa/api/workflow-definitions` → 200 |
-| T4 | `tenant-a-designer` Token | `current-user` 仅 read claims |
+| T4 | `tenant-a-designer` Token + `__tenant` | `GET /identity/users/me` → 200，仅 read claims |
 | T5 | `tenant-a-designer` Token + `__tenant` | `POST /elsa/api/workflow-definitions` → 403 |
-| T6 | 租户 A admin 创建定义 + 租户 B 列表 | 租户 B **不应**看到租户 A 的 `definitionId` |
-| T7 | Host admin 列表 | **不应**看到租户内工作流定义 |
-| T8 | 租户用户 Token | JWT 含 `tenantid` Claim |
+| T6 | `tenant-a-admin` Token + `__tenant` | `GET /elsa/api/descriptors/commit-strategies/workflows` → 200 |
+| T7 | 租户 A admin 创建定义 + 租户 B 列表 | 租户 B **不应**看到租户 A 的 `definitionId` |
+| T8 | Host admin 列表（无 `__tenant`） | **不应**看到租户内工作流定义 |
+| T9 | `tenant-a-admin` Password Grant Token | JWT 含 `tenantid` Claim |
+| T10 | Host admin + `__tenant: tenant-a` 列表 | **应**看到在 tenant-a 下创建的定义 |
+| T11 | Host admin + `__tenant: tenant-b` 列表 | **不应**看到仅在 tenant-a 下的定义 |
 
 **三种运行场景**
 
@@ -455,6 +466,8 @@ npm run show-report
 | `tenant-a-designer` | `1q2w3E*` | `tenant-a` | 只读权限 |
 | `tenant-b-admin` | `1q2w3E*` | `tenant-b` | 租户隔离 |
 
+> 种子还包含 `tenant-b-designer`（租户只读），当前 E2E 未为其单独建 Playwright project。
+
 CI：`e2e-tests` job（Postgres + `dotnet dev-certs https` + Playwright Chromium，`ignoreHTTPSErrors` 无需系统信任）；失败时上传 `playwright-report` 构件。
 
 演示项目的 `appsettings.json` **未**启用 Password Grant；仅 WAF 注入 `AuthServer:AllowPasswordGrantForIntegrationTests=true` 时生效（集成测专用，E2E 走真实 OIDC）。
@@ -480,7 +493,7 @@ git push -u origin develop
 | Job | 内容 |
 |-----|------|
 | `build-and-test` | 编译 + **单元测**（`Category!=Integration`，不依赖 Postgres） |
-| `integration-tests` | **演示项目集成测**（GHA `postgres:15-alpine` service，T0–T8） |
+| `integration-tests` | **演示项目集成测**（GHA `postgres:15-alpine` service，T0–T11） |
 | `e2e-tests` | **Playwright 浏览器 E2E**（Postgres + Chromium，OIDC + Studio 全链路） |
 
 PR 合并前三个 job 均须通过。

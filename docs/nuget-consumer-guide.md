@@ -156,7 +156,7 @@ public class MyAppHttpApiHostModule : AbpModule
 
 ## 配置文件（`appsettings.json`）
 
-完整示例见 [`docs/appsettings.consumer.example.json`](appsettings.consumer.example.json)。核心结构如下。
+完整示例见 [`docs/appsettings.consumer.example.json`](appsettings.consumer.example.json)（OpenIddict 客户端等使用 `MyApp_*` **占位符**；演示 Host 使用 `BioTrace_Elsa_Abp_Swagger` 等，见 [`host/.../appsettings.json`](../host/BioTrace.Elsa.Abp.HttpApi.Host/appsettings.json)）。核心结构如下。
 
 ### 双库连接串（必填）
 
@@ -304,28 +304,36 @@ Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](
 
 ### 为角色授予权限
 
-在调用方 `IDataSeedContributor` 或管理界面中为角色授权，示例（与演示项目一致）：
+在调用方 `IDataSeedContributor` 或管理界面中为角色授权。演示项目分 **Host** 与 **租户内** 两套种子（无 Host 级 `designer` / `operator` 角色）：
+
+**Host（`ElsaAbpHostDataSeedContributor`）** — 用户 `admin`，角色 `admin`：
 
 ```csharp
 await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.Admin, true);
 await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.NotReadOnly, true);
-
-await _permissionManager.SetForRoleAsync("designer",
-    AbpElsaPermissions.WorkflowDefinitions.Read, true);
-await _permissionManager.SetForRoleAsync("designer",
-    AbpElsaPermissions.WorkflowInstances.Read, true);
-
-await _permissionManager.SetForRoleAsync("operator",
-    AbpElsaPermissions.WorkflowDefinitions.Read, true);
-await _permissionManager.SetForRoleAsync("operator",
-    AbpElsaPermissions.WorkflowInstances.Read, true);
-await _permissionManager.SetForRoleAsync("operator",
-    AbpElsaPermissions.WorkflowInstances.Execute, true);
-await _permissionManager.SetForRoleAsync("operator",
-    AbpElsaPermissions.WorkflowInstances.Cancel, true);
 ```
 
-演示种子实现：[`ElsaAbpHostDataSeedContributor`](../host/BioTrace.Elsa.Abp.HttpApi.Host/Data/ElsaAbpHostDataSeedContributor.cs)。
+**租户内（`ElsaAbpMultiTenancyHostDataSeedContributor`）** — 每个租户（`tenant-a`、`tenant-b`）各建角色 `admin` 与 `designer`；用户如 `tenant-a-admin` / `tenant-a-designer`：
+
+```csharp
+// 租户 admin 角色（如 tenant-a-admin）：写/执行/取消等
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.NotReadOnly, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowDefinitions.Read, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowDefinitions.Write, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowDefinitions.Publish, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowDefinitions.Delete, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowInstances.Read, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowInstances.Write, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowInstances.Execute, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowInstances.Cancel, true);
+await _permissionManager.SetForRoleAsync("admin", AbpElsaPermissions.WorkflowInstances.Delete, true);
+
+// 租户 designer 角色（如 tenant-a-designer / tenant-b-designer）：只读
+await _permissionManager.SetForRoleAsync("designer", AbpElsaPermissions.WorkflowDefinitions.Read, true);
+await _permissionManager.SetForRoleAsync("designer", AbpElsaPermissions.WorkflowInstances.Read, true);
+```
+
+> 上述 `SetForRoleAsync` 在租户上下文中执行（演示种子使用 `ICurrentTenant.Change(tenantId)`）。完整实现见 [`ElsaAbpHostDataSeedContributor`](../host/BioTrace.Elsa.Abp.HttpApi.Host/Data/ElsaAbpHostDataSeedContributor.cs) 与 [`ElsaAbpMultiTenancyHostDataSeedContributor`](../host/BioTrace.Elsa.Abp.HttpApi.Host/Data/ElsaAbpMultiTenancyHostDataSeedContributor.cs)。
 
 ### 查询当前用户 Elsa 权限（Studio / 前端）
 
@@ -424,7 +432,7 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 4. 使用仅 `WorkflowDefinitions.Read` 的用户尝试 `POST /elsa/api/workflow-definitions`，应返回 403。
 5. 调用 `GET /api/abp/elsa/current-user`，确认 `permissions` 与角色一致。
 
-集成测矩阵（T0–T8）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/)。
+集成测矩阵（T0–T11）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 与 [README 集成测说明](../README.md#演示项目集成测)。
 
 ## Elsa Studio 集成（可选）
 
