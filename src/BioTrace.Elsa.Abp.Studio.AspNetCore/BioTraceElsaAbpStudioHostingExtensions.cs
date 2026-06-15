@@ -33,7 +33,7 @@ public static class BioTraceElsaAbpStudioHostingExtensions
                 "BioTrace Elsa Studio hosting requires WebApplication. Ensure the host uses WebApplication.CreateBuilder.");
         }
 
-        var pathBase = NormalizePathBase(options.PathBase);
+        var pathBase = BioTraceElsaAbpStudioPaths.NormalizePathBase(options.PathBase);
         var assetPathBase = pathBase.TrimStart('/');
         var studioContentPrefix = $"{pathBase}/_content";
         var studioIndexPath = $"/{assetPathBase}/index.html";
@@ -42,6 +42,16 @@ public static class BioTraceElsaAbpStudioHostingExtensions
         app.Use(async (context, next) =>
         {
             var requestPath = context.Request.Path.Value;
+            if (BioTraceElsaAbpStudioPaths.TryGetLegacyAuthenticationRedirect(
+                    requestPath,
+                    pathBase,
+                    out var legacyAuthenticationRedirect))
+            {
+                var query = context.Request.QueryString.HasValue ? context.Request.QueryString.Value : string.Empty;
+                context.Response.Redirect(legacyAuthenticationRedirect + query, permanent: false);
+                return;
+            }
+
             if (requestPath?.StartsWith(studioContentPrefix, StringComparison.OrdinalIgnoreCase) == true)
             {
                 context.Request.Path = new PathString("/_content" + requestPath[studioContentPrefix.Length..]);
@@ -99,21 +109,5 @@ public static class BioTraceElsaAbpStudioHostingExtensions
 
         var relativePath = requestPath[(pathBase.Length + 1)..];
         return !Path.HasExtension(relativePath);
-    }
-
-    private static string NormalizePathBase(string pathBase)
-    {
-        if (string.IsNullOrWhiteSpace(pathBase))
-        {
-            return "/studio";
-        }
-
-        var normalized = pathBase.Trim();
-        if (!normalized.StartsWith('/'))
-        {
-            normalized = "/" + normalized;
-        }
-
-        return normalized.TrimEnd('/');
     }
 }

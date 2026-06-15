@@ -1,0 +1,12 @@
+@using BioTrace.Elsa.Abp.Studio
+@using Microsoft.Extensions.Options
+@inject NavigationManager NavigationManager
+@inject IOptions<BioTraceElsaAbpStudioOptions> StudioOptions
+
+@code {
+    protected override void OnInitialized()
+    {
+        var url = BioTraceElsaAbpStudioPaths.GetAuthenticationLoginPath(StudioOptions.Value.PathBase);
+        NavigationManager.NavigateTo(url, forceLoad: true);
+    }
+}
