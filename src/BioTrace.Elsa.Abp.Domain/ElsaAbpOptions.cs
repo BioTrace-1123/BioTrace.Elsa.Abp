@@ -42,4 +42,10 @@ public class ElsaAbpOptions
 
     /// <summary>Claim type used to resolve tenant from authenticated user (OpenIddict JWT).</summary>
     public string TenantIdClaimType { get; set; } = "tenantid";
+
+    /// <summary>
+    /// When true, <see cref="MultiTenancy.ElsaAbpDeferringTenantsProvider"/> returns Host-only tenants until ABP
+    /// tenant storage is reachable (avoids startup failure before DbMigrator runs).
+    /// </summary>
+    public bool DeferTenantActivationUntilReady { get; set; }
 }
