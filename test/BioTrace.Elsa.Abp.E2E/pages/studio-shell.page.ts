@@ -43,8 +43,8 @@ export class StudioShellPage {
   }
 
   async selectTenant(displayName: string): Promise<void> {
-    // MudBlazor MudSelect does not expose a native <label>; open via the select control in the app bar.
-    const tenantSelect = this.page.locator('.mud-select').first();
+    // Scope to the app-bar user menu (not the table rows-per-page MudSelect).
+    const tenantSelect = this.page.locator('.d-flex.align-center.gap-2 .mud-select').first();
     await tenantSelect.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.ui });
     await tenantSelect.click();
 
