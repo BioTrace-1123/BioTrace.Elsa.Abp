@@ -2,7 +2,9 @@ using BioTrace.Elsa.Abp.Studio.Components;
 using BioTrace.Elsa.Abp.Studio.Extensions;
 using BioTrace.Elsa.Abp.Studio.Http;
 using BioTrace.Elsa.Abp.Studio.Services;
+using Elsa.Studio.Authentication.Abstractions.ComponentProviders;
 using Elsa.Studio.Authentication.OpenIdConnect.BlazorWasm.Extensions;
+using Elsa.Studio.Authentication.OpenIdConnect.Models;
 using Elsa.Studio.Authentication.OpenIdConnect.HttpMessageHandlers;
 using Elsa.Studio.Contracts;
 using Elsa.Studio.Core.BlazorWasm.Extensions;
@@ -51,7 +53,10 @@ public static class BioTraceElsaAbpStudioExtensions
         builder.Services.AddOpenIdConnectAuth(oidcOptions =>
         {
             configuration.GetSection("ElsaStudio:Authentication:OpenIdConnect").Bind(oidcOptions);
+            ApplyPathBaseToOidcCallbackPaths(oidcOptions, options.PathBase);
         });
+
+        builder.Services.AddScoped<IUnauthorizedComponentProvider, UnauthorizedComponentProvider<AbpStudioNavigateToLogin>>();
 
         builder.Services.AddOptions<RemoteAuthenticationOptions<OidcProviderOptions>>()
             .Configure(oidcOptions =>
@@ -60,10 +65,15 @@ public static class BioTraceElsaAbpStudioExtensions
                     configuration["ElsaStudio:Authentication:OpenIdConnect:NameClaimType"] ?? "preferred_username";
                 oidcOptions.UserOptions.RoleClaim =
                     configuration["ElsaStudio:Authentication:OpenIdConnect:RoleClaimType"] ?? "role";
+
+                ConfigureRemoteAuthenticationPaths(oidcOptions);
+                ConfigureOidcRedirectUri(oidcOptions, configuration, options.PathBase);
             });
 
         builder.Services.AddTransient<AbpTenantHeaderDelegatingHandler>();
         builder.Services.AddScoped<IAbpStudioTenantContext, AbpStudioTenantContext>();
+        builder.Services.Configure<BioTraceElsaAbpStudioOptions>(configuration.GetSection("ElsaStudio"));
+        RegisterStudioTenantDirectory(builder, configuration);
 
         var backendApiConfig = new BackendApiConfig
         {
@@ -148,6 +158,103 @@ public static class BioTraceElsaAbpStudioExtensions
             .AddHttpMessageHandler<AbpTenantHeaderDelegatingHandler>();
 
         services.AddScoped<ICreateWorkflowDialogComponentProvider, AbpCreateWorkflowDialogComponentProvider>();
+    }
+
+    private static void RegisterStudioTenantDirectory(WebAssemblyHostBuilder builder, IConfiguration configuration)
+    {
+        var authority = configuration["ElsaStudio:Authentication:OpenIdConnect:Authority"]?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(authority))
+        {
+            builder.Services.AddScoped<IStudioTenantDirectory, ConfigurationStudioTenantDirectory>();
+            return;
+        }
+
+        builder.Services.AddHttpClient<AbpApiStudioTenantDirectory>(client =>
+            {
+                client.BaseAddress = new Uri(authority + "/");
+            });
+
+        builder.Services.AddScoped<ConfigurationStudioTenantDirectory>();
+        builder.Services.AddScoped<IStudioTenantDirectory, StudioTenantDirectory>();
+    }
+
+    private static void ApplyPathBaseToOidcCallbackPaths(
+        OidcOptions oidcOptions,
+        string pathBase)
+    {
+        var normalizedPathBase = BioTraceElsaAbpStudioPaths.NormalizePathBase(pathBase);
+        if (normalizedPathBase is "/" or "")
+        {
+            return;
+        }
+
+        oidcOptions.CallbackPath = EnsurePathBasePrefix(oidcOptions.CallbackPath, normalizedPathBase);
+        oidcOptions.SignedOutCallbackPath = EnsurePathBasePrefix(oidcOptions.SignedOutCallbackPath, normalizedPathBase);
+    }
+
+    private static void ConfigureRemoteAuthenticationPaths(
+        RemoteAuthenticationOptions<OidcProviderOptions> oidcOptions)
+    {
+        // Resolved relative to <base href="/studio/"> — do not prefix with PathBase here.
+        var paths = oidcOptions.AuthenticationPaths;
+        paths.LogInPath = "authentication/login";
+        paths.LogInCallbackPath = "authentication/login-callback";
+        paths.LogOutPath = "authentication/logout";
+        paths.LogOutCallbackPath = "authentication/logout-callback";
+        paths.LogOutSucceededPath = "authentication/logout-succeeded";
+        paths.LogInFailedPath = "authentication/login-failed";
+        paths.LogOutFailedPath = "authentication/logout-failed";
+        paths.ProfilePath = "authentication/profile";
+        paths.RegisterPath = "authentication/register";
+    }
+
+    private static void ConfigureOidcRedirectUri(
+        RemoteAuthenticationOptions<OidcProviderOptions> oidcOptions,
+        IConfiguration configuration,
+        string pathBase)
+    {
+        var authority = configuration["ElsaStudio:Authentication:OpenIdConnect:Authority"]?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(authority))
+        {
+            return;
+        }
+
+        var callbackPath = configuration["ElsaStudio:Authentication:OpenIdConnect:CallbackPath"];
+        if (string.IsNullOrWhiteSpace(callbackPath))
+        {
+            var normalizedPathBase = BioTraceElsaAbpStudioPaths.NormalizePathBase(pathBase);
+            callbackPath = $"{normalizedPathBase}/authentication/login-callback";
+        }
+
+        oidcOptions.ProviderOptions.RedirectUri = authority + EnsureAbsolutePath(callbackPath);
+    }
+
+    private static string EnsureAbsolutePath(string path)
+    {
+        var normalized = path.Trim();
+        return normalized.StartsWith('/') ? normalized : "/" + normalized;
+    }
+
+    private static string EnsurePathBasePrefix(string? path, string pathBase)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return $"{pathBase}/authentication/login-callback";
+        }
+
+        var normalized = path.Trim();
+        if (!normalized.StartsWith('/'))
+        {
+            normalized = "/" + normalized;
+        }
+
+        if (normalized.StartsWith(pathBase + "/", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(normalized, pathBase, StringComparison.OrdinalIgnoreCase))
+        {
+            return normalized;
+        }
+
+        return pathBase + normalized;
     }
 
     internal static string ResolveAbsoluteBackendUrl(

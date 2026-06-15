@@ -1,19 +1,27 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
-namespace BioTrace.Elsa.Abp.Helpers;
+namespace BioTrace.Elsa.Abp.IntegrationTesting;
 
 public class OpenIddictTokenClient
 {
-    public const string ClientId = "BioTrace_Elsa_Abp_IntegrationTests";
-    public const string ClientSecret = "integration-test-secret";
     public const string DefaultPassword = "1q2w3E*";
 
     private readonly HttpClient _httpClient;
+    private readonly string _clientId;
+    private readonly string _clientSecret;
+    private readonly string _scope;
 
-    public OpenIddictTokenClient(HttpClient httpClient)
+    public OpenIddictTokenClient(
+        HttpClient httpClient,
+        string clientId,
+        string clientSecret,
+        string scope)
     {
         _httpClient = httpClient;
+        _clientId = clientId;
+        _clientSecret = clientSecret;
+        _scope = scope;
     }
 
     public virtual async Task<string> RequestPasswordTokenAsync(
@@ -27,11 +35,11 @@ public class OpenIddictTokenClient
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["grant_type"] = "password",
-                ["client_id"] = ClientId,
-                ["client_secret"] = ClientSecret,
+                ["client_id"] = _clientId,
+                ["client_secret"] = _clientSecret,
                 ["username"] = username,
                 ["password"] = password,
-                ["scope"] = "BioTrace_Elsa_Abp openid profile roles"
+                ["scope"] = _scope
             })
         };
 

@@ -55,6 +55,7 @@ namespace BioTrace.Elsa.Abp;
     typeof(AbpPermissionManagementEntityFrameworkCoreModule),
     typeof(AbpTenantManagementEntityFrameworkCoreModule),
     typeof(AbpTenantManagementApplicationModule),
+    typeof(AbpTenantManagementHttpApiModule),
     typeof(AbpAutofacModule),
     typeof(AbpAspNetCoreSerilogModule),
     typeof(AbpSwashbuckleModule),
@@ -344,7 +345,6 @@ public class AbpHttpApiHostModule : AbpModule
             options.OAuthScopes("BioTrace_Elsa_Abp");
         });
         app.UseAbpSerilogEnrichers();
-        app.UseBioTraceElsaAbpStudioFallback();
         app.UseConfiguredEndpoints();
     }
 

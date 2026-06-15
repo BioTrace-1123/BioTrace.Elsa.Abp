@@ -19,7 +19,10 @@ usage() {
   --backend-url     Elsa API 地址，默认 {authority}/elsa/api
   --api-scope       OIDC API Scope，默认从 Host 项目名推断
   --package-version BioTrace.Elsa.Abp.Studio.BlazorWasm 版本，默认读取仓库 common.props
+  --studio-aspnetcore-version BioTrace.Elsa.Abp.Studio.AspNetCore 版本，默认与 package-version 相同
   --template-dir    模板目录，默认仓库 Installer/Templates/Studio.Client
+  --skip-module-hints  不向 Host 模块注入 Studio 中间件代码片段
+  --register-host-module  向 Host 模块注入 AddBioTraceElsaAbpStudioHost / UseBioTraceElsaAbpStudioHost
   --dry-run         仅打印将执行的操作
   -h, --help        显示帮助
 EOF
@@ -37,8 +40,11 @@ AUTHORITY=""
 BACKEND_URL=""
 API_SCOPE=""
 PACKAGE_VERSION=""
+STUDIO_ASPNETCORE_VERSION=""
 TEMPLATE_DIR="$DEFAULT_TEMPLATE_DIR"
 DRY_RUN=false
+SKIP_MODULE_HINTS=false
+REGISTER_HOST_MODULE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -50,7 +56,10 @@ while [[ $# -gt 0 ]]; do
     --backend-url) BACKEND_URL="$2"; shift 2 ;;
     --api-scope) API_SCOPE="$2"; shift 2 ;;
     --package-version) PACKAGE_VERSION="$2"; shift 2 ;;
+    --studio-aspnetcore-version) STUDIO_ASPNETCORE_VERSION="$2"; shift 2 ;;
     --template-dir) TEMPLATE_DIR="$2"; shift 2 ;;
+    --skip-module-hints) SKIP_MODULE_HINTS=true; shift ;;
+    --register-host-module) REGISTER_HOST_MODULE=true; shift ;;
     --dry-run) DRY_RUN=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "未知参数: $1" >&2; usage; exit 1 ;;
@@ -76,6 +85,7 @@ fi
 if [[ -z "$PACKAGE_VERSION" ]]; then
   PACKAGE_VERSION="$(grep -oP '(?<=<Version>)[^<]+' "$REPO_ROOT/common.props" | head -1)"
 fi
+STUDIO_ASPNETCORE_VERSION="${STUDIO_ASPNETCORE_VERSION:-$PACKAGE_VERSION}"
 
 HOST_DIR="$(cd "$(dirname "$HOST_PROJECT")" && pwd)"
 LAUNCH_SETTINGS="$HOST_DIR/Properties/launchSettings.json"
@@ -155,64 +165,138 @@ print(os.path.relpath(client, host).replace(os.sep, "/"))
 PY
 )"
 
-if $DRY_RUN; then
-  echo "[dry-run] 向 Host 添加 ProjectReference: $RELATIVE_CLIENT_REF"
-else
+add_host_csproj_refs() {
+  if $DRY_RUN; then
+    echo "[dry-run] 向 Host 添加 ProjectReference: $RELATIVE_CLIENT_REF"
+    echo "[dry-run] 向 Host 添加 PackageReference: BioTrace.Elsa.Abp.Studio.AspNetCore $STUDIO_ASPNETCORE_VERSION"
+    return
+  fi
+
   python3 - <<PY
 import pathlib
 import xml.etree.ElementTree as ET
 
 host_path = pathlib.Path("$HOST_PROJECT_ABS")
 client_ref = "$RELATIVE_CLIENT_REF"
+studio_package_id = "BioTrace.Elsa.Abp.Studio.AspNetCore"
+studio_package_version = "$STUDIO_ASPNETCORE_VERSION"
 tree = ET.parse(host_path)
 root = tree.getroot()
-ns = {"ms": "http://schemas.microsoft.com/developer/msbuild/2003"}
+
+def local_tag(element):
+    return element.tag.split("}")[-1] if "}" in element.tag else element.tag
 
 def find_item_groups(element):
-    groups = []
-    for child in element:
-        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-        if tag == "ItemGroup":
-            groups.append(child)
-    return groups
+    return [child for child in element if local_tag(child) == "ItemGroup"]
+
+def ensure_package_reference(item_groups, package_id, package_version):
+    for group in item_groups:
+        for child in group:
+            if local_tag(child) != "PackageReference":
+                continue
+            include = child.attrib.get("Include") or child.attrib.get("include")
+            if include == package_id:
+                print(f"Host 已包含 PackageReference: {package_id}")
+                return
+    target_group = next((g for g in item_groups if any(local_tag(c) == "PackageReference" for c in g)), None)
+    if target_group is None:
+        target_group = ET.SubElement(root, "ItemGroup")
+    ref = ET.SubElement(target_group, "PackageReference")
+    ref.set("Include", package_id)
+    ref.set("Version", package_version)
+    print(f"已向 Host 添加 PackageReference: {package_id} ({package_version})")
+
+def ensure_project_reference(item_groups, project_ref):
+    for group in item_groups:
+        for child in group:
+            if local_tag(child) != "ProjectReference":
+                continue
+            include = child.attrib.get("Include", "")
+            if include.replace("\\\\", "/") == project_ref:
+                print(f"Host 已包含 ProjectReference: {project_ref}")
+                return
+    target_group = next((g for g in item_groups if any(local_tag(c) == "ProjectReference" for c in g)), None)
+    if target_group is None:
+        target_group = ET.SubElement(root, "ItemGroup")
+    ref = ET.SubElement(target_group, "ProjectReference")
+    ref.set("Include", project_ref)
+    print(f"已向 Host 添加 ProjectReference: {project_ref}")
 
 item_groups = find_item_groups(root)
-project_ref_tag = None
-for group in item_groups:
-    for child in group:
-        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-        if tag == "ProjectReference":
-            include = child.attrib.get("Include", "")
-            if include.replace("\\\\", "/") == client_ref:
-                print(f"Host 已包含 ProjectReference: {client_ref}")
-                raise SystemExit(0)
-            project_ref_tag = child.tag
-
-if project_ref_tag is None:
-    project_ref_tag = "ProjectReference"
-
-target_group = None
-for group in item_groups:
-    for child in group:
-        tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
-        if tag == "ProjectReference":
-            target_group = group
-            break
-    if target_group is not None:
-        break
-
-if target_group is None:
-    target_group = ET.SubElement(root, "ItemGroup")
-
-ref = ET.SubElement(target_group, project_ref_tag if "}" not in project_ref_tag else project_ref_tag.split("}")[1])
-ref.set("Include", client_ref)
+ensure_package_reference(item_groups, studio_package_id, studio_package_version)
+ensure_project_reference(item_groups, client_ref)
 
 ET.indent(tree, space="  ")
 tree.write(host_path, encoding="utf-8", xml_declaration=False)
-print(f"已向 Host 添加 ProjectReference: {client_ref}")
 PY
+}
+
+add_host_csproj_refs
+
+register_host_module() {
+  local host_module
+  host_module="$(find "$HOST_DIR" -maxdepth 1 -name '*Module.cs' | head -1)"
+  if [[ -z "$host_module" ]]; then
+    echo "警告: 未找到 Host 模块文件，跳过 --register-host-module。" >&2
+    return
+  fi
+
+  if $DRY_RUN; then
+    echo "[dry-run] 向 Host 模块注入 Studio 托管扩展: $host_module"
+    return
+  fi
+
+  python3 - <<PY "$host_module"
+import pathlib
+import sys
+
+module_path = pathlib.Path(sys.argv[1])
+content = module_path.read_text(encoding="utf-8")
+changed = False
+
+if "AddBioTraceElsaAbpStudioHost" not in content:
+    marker = "ConfigureServices(ServiceConfigurationContext context)"
+    if marker in content:
+        insert = '''
+        context.Services.AddBioTraceElsaAbpStudioHost(context.Services.GetConfiguration());
+'''
+        content = content.replace(
+            marker + "\n    {",
+            marker + "\n    {" + insert,
+            1,
+        )
+        changed = True
+
+if "UseBioTraceElsaAbpStudioHost" not in content:
+    marker = "OnApplicationInitialization(ApplicationInitializationContext context)"
+    if marker in content:
+        insert = '''
+        app.UseBioTraceElsaAbpStudioHost();
+'''
+        content = content.replace(
+            marker + "\n    {",
+            marker + "\n    {" + insert,
+            1,
+        )
+        changed = True
+
+if "using BioTrace.Elsa.Abp.Studio;" not in content:
+    content = "using BioTrace.Elsa.Abp.Studio;\n" + content
+    changed = True
+
+if changed:
+    module_path.write_text(content, encoding="utf-8")
+    print(f"已向 Host 模块注入 Studio 托管扩展: {module_path}")
+else:
+    print(f"Host 模块已包含 Studio 托管扩展: {module_path}")
+PY
+}
+
+if $REGISTER_HOST_MODULE; then
+  register_host_module
 fi
 
+if ! $SKIP_MODULE_HINTS; then
 cat <<'EOF'
 
 ==> 请在 Host 模块中注册 Elsa Studio 托管扩展（托管中间件由 Studio.AspNetCore 提供，勿在 Client 中实现）:
@@ -224,10 +308,12 @@ cat <<'EOF'
   app.UseBioTraceElsaAbpStudioHost();
   app.UseStaticFiles();
   // ... 其他中间件 ...
-  app.UseBioTraceElsaAbpStudioFallback();
 
 另请配置 Host appsettings 中 ElsaStudio:Enabled、ElsaStudio:PathBase，以及 OpenIddict 客户端 ElsaStudio 的 RedirectUris。
 
+提示: 使用 --register-host-module 可自动注入上述代码；Host 已自动添加 BioTrace.Elsa.Abp.Studio.AspNetCore 包引用。
+
 EOF
+fi
 
 echo "完成。"

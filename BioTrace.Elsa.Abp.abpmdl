@@ -57,6 +57,10 @@
     "BioTrace.Elsa.Abp.Application.Tests": {
       "path": "test/BioTrace.Elsa.Abp.Application.Tests/BioTrace.Elsa.Abp.Application.Tests.abppkg",
       "folder": "test"
+    },
+    "BioTrace.Elsa.Abp.IntegrationTesting": {
+      "path": "test/BioTrace.Elsa.Abp.IntegrationTesting/BioTrace.Elsa.Abp.IntegrationTesting.abppkg",
+      "folder": "test"
     }
   }
 }

@@ -4,7 +4,16 @@ public class ElsaAbpOptions
 {
     public string ConnectionStringName { get; set; } = ElsaAbpDbProperties.ConnectionStringName;
 
+    /// <summary>
+    /// When true, registers <c>ElsaAbpElsaDatabaseMigrationHostedService</c> to migrate Elsa Management/Runtime databases at startup.
+    /// Elsa EF persistence should set <c>ef.RunMigrations = false</c> to avoid duplicate migration paths.
+    /// </summary>
     public bool RunMigrations { get; set; } = true;
+
+    /// <summary>
+    /// When true (default), Elsa migrations run only in Development. Set false to allow startup migrations in production.
+    /// </summary>
+    public bool MigrateOnlyInDevelopment { get; set; } = true;
 
     public bool EnableWorkflowsApi { get; set; } = true;
 

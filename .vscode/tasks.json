@@ -82,7 +82,7 @@
     {
       "label": "ef-database-update-all-abp-contexts",
       "type": "shell",
-      "command": "set -euo pipefail && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext",
+      "command": "set -euo pipefail && dotnet tool restore --tool-manifest \"${workspaceFolder}/.config/dotnet-tools.json\" && dotnet ef database update --context AbpDbContext && dotnet ef database update --context IdentityDbContext && dotnet ef database update --context PermissionManagementDbContext && dotnet ef database update --context OpenIddictDbContext && dotnet ef database update --context TenantManagementDbContext",
       "options": {
         "cwd": "${workspaceFolder}/host/BioTrace.Elsa.Abp.HttpApi.Host"
       },

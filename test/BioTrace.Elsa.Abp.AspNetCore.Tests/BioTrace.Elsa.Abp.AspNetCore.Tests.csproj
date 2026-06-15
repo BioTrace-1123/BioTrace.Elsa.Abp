@@ -18,6 +18,7 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.AspNetCore\BioTrace.Elsa.Abp.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.Studio.BlazorWasm\BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj" />
   </ItemGroup>
 
 </Project>

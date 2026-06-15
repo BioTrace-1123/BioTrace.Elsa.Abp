@@ -8,9 +8,13 @@ export class StudioShellPage {
   constructor(private readonly page: Page) {}
 
   async loginViaStudio(username: string, tenantName?: string): Promise<void> {
+    await this.page.goto(`${TestData.studioPath}/authentication/login`);
+    await this.completeLoginIfNeeded(username, tenantName);
+  }
+
+  async completeLoginIfNeeded(username: string, tenantName?: string): Promise<void> {
     const loginPage = new LoginPage(this.page);
 
-    await this.page.goto(`${TestData.studioPath}/authentication/login`);
     await this.page.locator('#app').waitFor({ state: 'attached', timeout: E2E_TIMEOUTS.wasmBoot });
     await this.page.waitForURL(/\/Account\/Login|\/studio\//, { timeout: E2E_TIMEOUTS.loginFlow });
 
@@ -43,8 +47,8 @@ export class StudioShellPage {
   }
 
   async selectTenant(displayName: string): Promise<void> {
-    // MudBlazor MudSelect does not expose a native <label>; open via the select control in the app bar.
-    const tenantSelect = this.page.locator('.mud-select').first();
+    // Scope to the app-bar user menu (not the table rows-per-page MudSelect).
+    const tenantSelect = this.page.locator('.d-flex.align-center.gap-2 .mud-select').first();
     await tenantSelect.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.ui });
     await tenantSelect.click();
 

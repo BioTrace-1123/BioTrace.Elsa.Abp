@@ -135,7 +135,7 @@ abp add-module BioTrace.Elsa.Abp
 开发环境（`ASPNETCORE_ENVIRONMENT=Development`）演示项目 `Program.cs` 在 `InitializeApplicationAsync` 之后依次执行：
 
 1. **`ElsaAbpHostDatabaseMigrationHostedService`** — 迁移 ABP 业务库（`AbpDbContext`、Identity、OpenIddict、Permission、TenantManagement）
-2. **`ElsaAbpElsaDatabaseMigrationHostedService`** — 迁移 Elsa 工作流库
+2. **`MigrateElsaDatabasesAsync`**（`BioTrace.Elsa.Abp.AspNetCore`）— 迁移 Elsa 工作流库（由 `Elsa:RunMigrations` 控制；演示 Host 在种子前显式调用）
 3. **`IDataSeeder`** — 种子数据（Host `admin`、OpenIddict 客户端、租户与用户等）
 4. **`ElsaAbpTenantDemoWorkflowSeeder`** — 演示租户工作流定义
 

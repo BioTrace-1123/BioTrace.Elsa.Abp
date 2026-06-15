@@ -52,6 +52,17 @@ public class BioTraceElsaAbpStudioOpenIdConnectOptions
 
 public class BioTraceElsaAbpStudioTenancyOptions
 {
+    /// <summary>
+    /// When true, loads tenants from ABP <c>GET /api/multi-tenancy/tenants</c> (requires Host to reference TenantManagement.HttpApi).
+    /// Falls back to <see cref="Tenants"/> when the API is unavailable or returns no items.
+    /// </summary>
+    public bool UseAbpTenantApi { get; set; } = true;
+
+    /// <summary>
+    /// Optional override for the ABP tenant list API path (relative to Authority).
+    /// </summary>
+    public string? TenantsApiPath { get; set; }
+
     public List<Models.StudioTenantOption> Tenants { get; set; } = [];
 }
 

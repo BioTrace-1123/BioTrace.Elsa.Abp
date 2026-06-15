@@ -1,7 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
 
-namespace BioTrace.Elsa.Abp.Helpers;
+namespace BioTrace.Elsa.Abp.IntegrationTesting;
 
 public static class JwtPayloadReader
 {
