@@ -301,6 +301,9 @@ public class AbpHttpApiHostModule : AbpModule
             options.EnableElsaSwagger = configuration.GetValue(
                 "Elsa:EnableElsaSwagger",
                 hostEnvironment.IsDevelopment());
+            options.DeferTenantActivationUntilReady = configuration.GetValue(
+                "Elsa:DeferTenantActivationUntilReady",
+                options.DeferTenantActivationUntilReady);
         });
     }
 

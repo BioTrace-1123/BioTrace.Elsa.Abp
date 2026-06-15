@@ -30,5 +30,6 @@
 
     <Folder Name="/host/">
         <Project Path="host/BioTrace.Elsa.Abp.HttpApi.Host/BioTrace.Elsa.Abp.HttpApi.Host.csproj" />
+        <Project Path="host/BioTrace.Elsa.Abp.DbMigrator/BioTrace.Elsa.Abp.DbMigrator.csproj" />
     </Folder>
 </Solution>
