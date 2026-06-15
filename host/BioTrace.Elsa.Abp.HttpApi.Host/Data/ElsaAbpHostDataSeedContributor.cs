@@ -1,95 +1,52 @@
 using BioTrace.Elsa.Abp.Permissions;
-using Volo.Abp.Authorization.Permissions;
+using Microsoft.Extensions.Options;
 using Volo.Abp.Data;
-using Volo.Abp.DependencyInjection;
 using Volo.Abp.Guids;
 using Volo.Abp.Identity;
+using Volo.Abp.MultiTenancy;
 using Volo.Abp.PermissionManagement;
 using Volo.Abp.Uow;
 
 namespace BioTrace.Elsa.Abp.Data;
 
-public class ElsaAbpHostDataSeedContributor : IDataSeedContributor, ITransientDependency
+public class ElsaAbpHostDataSeedContributor : ElsaAbpPermissionDataSeedContributor
 {
-    private readonly IGuidGenerator _guidGenerator;
-    private readonly IIdentityRoleRepository _roleRepository;
-    private readonly IIdentityUserRepository _userRepository;
-    private readonly IdentityUserManager _userManager;
-    private readonly IPermissionManager _permissionManager;
-    private readonly Microsoft.AspNetCore.Identity.ILookupNormalizer _lookupNormalizer;
-    private readonly IUnitOfWorkManager _unitOfWorkManager;
-
     public ElsaAbpHostDataSeedContributor(
         IGuidGenerator guidGenerator,
+        ICurrentTenant currentTenant,
         IIdentityRoleRepository roleRepository,
         IIdentityUserRepository userRepository,
         IdentityUserManager userManager,
         IPermissionManager permissionManager,
         Microsoft.AspNetCore.Identity.ILookupNormalizer lookupNormalizer,
-        IUnitOfWorkManager unitOfWorkManager)
+        IUnitOfWorkManager unitOfWorkManager,
+        IOptions<ElsaAbpPermissionSeedOptions> permissionSeedOptions)
+        : base(
+            guidGenerator,
+            currentTenant,
+            roleRepository,
+            userRepository,
+            userManager,
+            permissionManager,
+            lookupNormalizer,
+            unitOfWorkManager,
+            permissionSeedOptions)
     {
-        _guidGenerator = guidGenerator;
-        _roleRepository = roleRepository;
-        _userRepository = userRepository;
-        _userManager = userManager;
-        _permissionManager = permissionManager;
-        _lookupNormalizer = lookupNormalizer;
-        _unitOfWorkManager = unitOfWorkManager;
     }
 
-    public virtual async Task SeedAsync(DataSeedContext context)
+    public override async Task SeedAsync(DataSeedContext context)
     {
-        using var uow = _unitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
+        using var uow = UnitOfWorkManager.Begin(requiresNew: true, isTransactional: true);
 
-        var adminRole = await SeedRoleAsync("admin", "Administrator");
+        var adminRole = await SeedRoleAsync("admin", "Administrator", isDefault: true);
 
         await SeedUserAsync("admin", "admin@localhost", "1q2w3E*", adminRole.Name);
 
         await GrantRolePermissionsAsync(adminRole.Name,
             AbpElsaPermissions.Admin,
-            AbpElsaPermissions.NotReadOnly);
+            AbpElsaPermissions.NotReadOnly,
+            "AbpTenantManagement.Tenants");
 
         await uow.CompleteAsync();
-    }
-
-    protected virtual async Task<Volo.Abp.Identity.IdentityRole> SeedRoleAsync(string name, string displayName)
-    {
-        var normalized = _lookupNormalizer.NormalizeName(name);
-        var role = await _roleRepository.FindByNormalizedNameAsync(normalized);
-        if (role != null)
-        {
-            return role;
-        }
-
-        role = new Volo.Abp.Identity.IdentityRole(_guidGenerator.Create(), name)
-        {
-            IsDefault = name == "admin",
-            IsPublic = true
-        };
-        return await _roleRepository.InsertAsync(role, autoSave: true);
-    }
-
-    protected virtual async Task SeedUserAsync(string userName, string email, string password, string roleName)
-    {
-        if (await _userRepository.FindByNormalizedUserNameAsync(_lookupNormalizer.NormalizeName(userName)) != null)
-        {
-            return;
-        }
-
-        var user = new Volo.Abp.Identity.IdentityUser(
-            _guidGenerator.Create(),
-            userName,
-            email);
-
-        await _userManager.CreateAsync(user, password);
-        await _userManager.AddToRoleAsync(user, roleName);
-    }
-
-    protected virtual async Task GrantRolePermissionsAsync(string roleName, params string[] permissions)
-    {
-        foreach (var permission in permissions)
-        {
-            await _permissionManager.SetForRoleAsync(roleName, permission, true);
-        }
     }
 }
