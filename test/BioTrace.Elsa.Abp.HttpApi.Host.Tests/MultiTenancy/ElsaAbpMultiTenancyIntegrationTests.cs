@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using BioTrace.Elsa.Abp.Fixtures;
 using BioTrace.Elsa.Abp.Helpers;
+using BioTrace.Elsa.Abp.IntegrationTesting;
 using BioTrace.Elsa.Abp.MultiTenancy;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Shouldly;
@@ -17,7 +18,7 @@ public class ElsaAbpMultiTenancyIntegrationTests : IAsyncLifetime
 {
     private readonly ElsaAbpWebApplicationFactory _factory;
     private HttpClient _client = null!;
-    private OpenIddictTokenClient _tokenClient = null!;
+    private ElsaAbpIntegrationTestTokenClient _tokenClient = null!;
 
     public ElsaAbpMultiTenancyIntegrationTests(ElsaAbpWebApplicationFactory factory)
     {
@@ -32,7 +33,7 @@ public class ElsaAbpMultiTenancyIntegrationTests : IAsyncLifetime
             AllowAutoRedirect = false,
             HandleCookies = false
         });
-        _tokenClient = new OpenIddictTokenClient(_client);
+        _tokenClient = new ElsaAbpIntegrationTestTokenClient(_client);
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

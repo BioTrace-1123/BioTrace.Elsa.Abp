@@ -1,4 +1,4 @@
-namespace BioTrace.Elsa.Abp.Helpers;
+namespace BioTrace.Elsa.Abp.IntegrationTesting;
 
 public static class IntegrationTestPostgresSettings
 {
@@ -18,11 +18,11 @@ public static class IntegrationTestPostgresSettings
         if (string.Equals(Host, "postgres", StringComparison.OrdinalIgnoreCase))
         {
             return "PostgreSQL is not available. In Dev Container, ensure the compose postgres service is healthy. "
-                   + "Test databases BioTrace_Abp_Test / BioTrace_Elsa_Test are created automatically when Postgres is reachable.";
+                   + "Test databases are created automatically when Postgres is reachable.";
         }
 
         return "PostgreSQL is not available. On the host machine run `docker compose up -d` first, "
                + "or set INTEGRATION_TEST_POSTGRES_HOST=postgres inside Dev Container. "
-               + "Test databases BioTrace_Abp_Test / BioTrace_Elsa_Test are created automatically when Postgres is reachable.";
+               + "Test databases are created automatically when Postgres is reachable.";
     }
 }

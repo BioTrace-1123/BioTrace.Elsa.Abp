@@ -1,6 +1,6 @@
 using Npgsql;
 
-namespace BioTrace.Elsa.Abp.Helpers;
+namespace BioTrace.Elsa.Abp.IntegrationTesting;
 
 public static class PostgresAvailability
 {
@@ -20,13 +20,25 @@ public static class PostgresAvailability
         }
     }
 
-    public static async Task EnsureTestDatabasesAsync(CancellationToken cancellationToken = default)
+    public static Task EnsureTestDatabasesAsync(
+        string abpDatabaseName,
+        string elsaDatabaseName,
+        CancellationToken cancellationToken = default)
+    {
+        return EnsureTestDatabasesAsync([abpDatabaseName, elsaDatabaseName], cancellationToken);
+    }
+
+    public static async Task EnsureTestDatabasesAsync(
+        IEnumerable<string> databaseNames,
+        CancellationToken cancellationToken = default)
     {
         await using var connection = new NpgsqlConnection(IntegrationTestPostgresSettings.GetAdminConnectionString());
         await connection.OpenAsync(cancellationToken);
 
-        await RecreateDatabaseAsync(connection, "BioTrace_Abp_Test", cancellationToken);
-        await RecreateDatabaseAsync(connection, "BioTrace_Elsa_Test", cancellationToken);
+        foreach (var databaseName in databaseNames)
+        {
+            await RecreateDatabaseAsync(connection, databaseName, cancellationToken);
+        }
     }
 
     private static async Task RecreateDatabaseAsync(

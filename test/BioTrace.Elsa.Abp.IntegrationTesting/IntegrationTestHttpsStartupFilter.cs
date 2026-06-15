@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpOverrides;
 
-namespace BioTrace.Elsa.Abp.Fixtures;
+namespace BioTrace.Elsa.Abp.IntegrationTesting;
 
 /// <summary>
 /// OpenIddict token endpoint requires HTTPS; TestServer uses HTTP unless forwarded proto is honored.

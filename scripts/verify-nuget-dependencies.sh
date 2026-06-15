@@ -23,6 +23,7 @@ PROJECTS=(
   "src/BioTrace.Elsa.Abp.Studio.BlazorWasm/BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj"
   "src/BioTrace.Elsa.Abp.Studio.AspNetCore/BioTrace.Elsa.Abp.Studio.AspNetCore.csproj"
   "src/BioTrace.Elsa.Abp.Installer/BioTrace.Elsa.Abp.Installer.csproj"
+  "test/BioTrace.Elsa.Abp.IntegrationTesting/BioTrace.Elsa.Abp.IntegrationTesting.csproj"
 )
 
 if [[ "$VERIFY_ONLY" != "true" ]]; then
