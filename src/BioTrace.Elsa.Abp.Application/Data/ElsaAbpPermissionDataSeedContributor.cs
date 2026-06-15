@@ -14,7 +14,7 @@ namespace BioTrace.Elsa.Abp.Data;
 /// <summary>
 /// Base data seed contributor for granting configured <c>Abp.Elsa.*</c> permissions to ABP roles.
 /// </summary>
-public abstract class ElsaAbpPermissionDataSeedContributor : IDataSeedContributor, ITransientDependency
+public abstract class ElsaAbpPermissionDataSeedContributor : IDataSeedContributor, IElsaAbpPermissionSeeder, ITransientDependency
 {
     protected IGuidGenerator GuidGenerator { get; }
     protected ICurrentTenant CurrentTenant { get; }
@@ -50,7 +50,7 @@ public abstract class ElsaAbpPermissionDataSeedContributor : IDataSeedContributo
 
     public abstract Task SeedAsync(DataSeedContext context);
 
-    protected virtual async Task GrantConfiguredRolePermissionsAsync()
+    public virtual async Task GrantConfiguredRolePermissionsAsync()
     {
         foreach (var (roleName, permissions) in PermissionSeedOptions.RolePermissions)
         {
