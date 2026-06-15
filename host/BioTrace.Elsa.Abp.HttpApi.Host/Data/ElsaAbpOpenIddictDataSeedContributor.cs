@@ -62,11 +62,48 @@ public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor, ITrans
     protected virtual async Task SeedApplicationAsync(string name, IConfigurationSection section)
     {
         var clientId = section["ClientId"] ?? name;
-        if (await _applicationManager.FindByClientIdAsync(clientId) != null)
+        var descriptor = CreateApplicationDescriptor(name, section);
+        var existing = await _applicationManager.FindByClientIdAsync(clientId);
+
+        if (existing == null)
+        {
+            await _applicationManager.CreateAsync(descriptor);
+            return;
+        }
+
+        var current = new OpenIddictApplicationDescriptor();
+        await _applicationManager.PopulateAsync(current, existing);
+
+        if (!RequiresApplicationUpdate(current, descriptor))
         {
             return;
         }
 
+        current.RedirectUris.Clear();
+        foreach (var uri in descriptor.RedirectUris)
+        {
+            current.RedirectUris.Add(uri);
+        }
+
+        current.PostLogoutRedirectUris.Clear();
+        foreach (var uri in descriptor.PostLogoutRedirectUris)
+        {
+            current.PostLogoutRedirectUris.Add(uri);
+        }
+
+        foreach (var permission in descriptor.Permissions)
+        {
+            current.Permissions.Add(permission);
+        }
+
+        await _applicationManager.UpdateAsync(existing, current);
+    }
+
+    protected virtual OpenIddictApplicationDescriptor CreateApplicationDescriptor(
+        string name,
+        IConfigurationSection section)
+    {
+        var clientId = section["ClientId"] ?? name;
         var rootUrl = section["RootUrl"]?.TrimEnd('/');
         var redirectUris = section.GetSection("RedirectUris").Get<string[]>()
             ?? (rootUrl != null
@@ -145,6 +182,37 @@ public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor, ITrans
             application.Permissions.Add(OpenIddictConstants.Permissions.Prefixes.Scope + "roles");
         }
 
-        await _applicationManager.CreateAsync(application);
+        return application;
+    }
+
+    protected virtual bool RequiresApplicationUpdate(
+        OpenIddictApplicationDescriptor current,
+        OpenIddictApplicationDescriptor desired)
+    {
+        if (!UriSetsEqual(current.RedirectUris, desired.RedirectUris))
+        {
+            return true;
+        }
+
+        if (!UriSetsEqual(current.PostLogoutRedirectUris, desired.PostLogoutRedirectUris))
+        {
+            return true;
+        }
+
+        return !desired.Permissions.All(permission => current.Permissions.Contains(permission));
+    }
+
+    private static bool UriSetsEqual(
+        IReadOnlyCollection<Uri> current,
+        IReadOnlyCollection<Uri> desired)
+    {
+        var currentSet = current
+            .Select(uri => uri.AbsoluteUri.TrimEnd('/'))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var desiredSet = desired
+            .Select(uri => uri.AbsoluteUri.TrimEnd('/'))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return currentSet.SetEquals(desiredSet);
     }
 }
