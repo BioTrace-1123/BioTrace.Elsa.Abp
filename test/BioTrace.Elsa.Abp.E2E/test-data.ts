@@ -5,6 +5,7 @@ export const TestData = {
   studioPath: '/studio',
   oidcClientId: 'ElsaStudio',
   oidcAuthority: process.env.E2E_BASE_URL ?? 'https://localhost:44388',
+  legacyAuthenticationLoginPath: '/authentication/login',
 
   users: {
     hostAdmin: 'admin',
@@ -39,6 +40,14 @@ export function sessionStoragePath(role: AuthRole): string {
 
 export function localStoragePath(role: AuthRole): string {
   return `.auth/${role}.local.json`;
+}
+
+export function studioOidcRedirectUri(baseUrl = TestData.baseUrl): string {
+  return `${baseUrl}${TestData.studioPath}/authentication/login-callback`;
+}
+
+export function studioAuthenticationLoginPath(baseUrl = TestData.baseUrl): string {
+  return `${baseUrl}${TestData.studioPath}/authentication/login`;
 }
 
 const projectAuthMap: Record<string, { username: string; tenantName: string | null; role: AuthRole }> = {

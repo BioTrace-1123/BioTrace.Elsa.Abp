@@ -43,6 +43,13 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'chromium-guest',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testMatch: /studio-auth-routing\.spec\.ts/,
+    },
+    {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
       timeout: E2E_TIMEOUTS.setupProject,

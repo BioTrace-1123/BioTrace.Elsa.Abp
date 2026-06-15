@@ -8,9 +8,13 @@ export class StudioShellPage {
   constructor(private readonly page: Page) {}
 
   async loginViaStudio(username: string, tenantName?: string): Promise<void> {
+    await this.page.goto(`${TestData.studioPath}/authentication/login`);
+    await this.completeLoginIfNeeded(username, tenantName);
+  }
+
+  async completeLoginIfNeeded(username: string, tenantName?: string): Promise<void> {
     const loginPage = new LoginPage(this.page);
 
-    await this.page.goto(`${TestData.studioPath}/authentication/login`);
     await this.page.locator('#app').waitFor({ state: 'attached', timeout: E2E_TIMEOUTS.wasmBoot });
     await this.page.waitForURL(/\/Account\/Login|\/studio\//, { timeout: E2E_TIMEOUTS.loginFlow });
 
