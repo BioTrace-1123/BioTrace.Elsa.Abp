@@ -21,7 +21,7 @@ public class ElsaAbpHostPostgreSqlModule : ElsaAbpAspNetCoreModule
             management.UseEntityFrameworkCore(ef =>
             {
                 ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
+                ef.RunMigrations = false;
             });
         });
 
@@ -30,7 +30,7 @@ public class ElsaAbpHostPostgreSqlModule : ElsaAbpAspNetCoreModule
             runtime.UseEntityFrameworkCore(ef =>
             {
                 ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
+                ef.RunMigrations = false;
             });
         });
     }

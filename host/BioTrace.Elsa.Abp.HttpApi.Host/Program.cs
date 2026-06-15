@@ -27,8 +27,7 @@ try
         using var scope = app.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<ElsaAbpHostDatabaseMigrationHostedService>()
             .StartAsync(CancellationToken.None);
-        await scope.ServiceProvider.GetRequiredService<ElsaAbpElsaDatabaseMigrationHostedService>()
-            .StartAsync(CancellationToken.None);
+        await scope.ServiceProvider.MigrateElsaDatabasesAsync();
         await scope.ServiceProvider.GetRequiredService<IDataSeeder>().SeedAsync();
         await scope.ServiceProvider.GetRequiredService<ElsaAbpTenantDemoWorkflowSeeder>().SeedAsync();
     }

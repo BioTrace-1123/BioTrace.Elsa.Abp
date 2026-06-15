@@ -12,6 +12,7 @@ using Volo.Abp;
 using Volo.Abp.AspNetCore;
 using Volo.Abp.Modularity;
 using Volo.Abp.Security.Claims;
+using BioTrace.Elsa.Abp.Data;
 using BioTrace.Elsa.Abp.MultiTenancy;
 using BioTrace.Elsa.Abp.Security;
 
@@ -41,6 +42,20 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         ConfigureElsa(context);
 
         ConfigureElsaSecurity(context, hostEnvironment);
+
+        ConfigureElsaDatabaseMigration(context);
+    }
+
+    protected virtual void ConfigureElsaDatabaseMigration(ServiceConfigurationContext context)
+    {
+        var options = context.Services.ExecutePreConfiguredActions<ElsaAbpOptions>();
+        if (!options.RunMigrations)
+        {
+            return;
+        }
+
+        context.Services.AddSingleton<ElsaAbpElsaDatabaseMigrator>();
+        context.Services.AddHostedService<ElsaAbpElsaDatabaseMigrationHostedService>();
     }
 
     protected virtual void ConfigureElsaSecurity(ServiceConfigurationContext context, IHostEnvironment hostEnvironment)
