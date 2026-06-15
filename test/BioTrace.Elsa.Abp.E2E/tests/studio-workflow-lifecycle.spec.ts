@@ -1,4 +1,5 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
+import { E2E_TIMEOUTS } from '../timeouts';
 import { TestData } from '../test-data';
 
 test.describe('Workflow lifecycle', () => {
@@ -19,7 +20,7 @@ test.describe('Workflow lifecycle', () => {
 
     await studioDefinitions.clickCreateWorkflow();
     await studioDefinitions.fillCreateWorkflowDialog(workflowName, 'E2E lifecycle workflow');
-    await page.waitForURL(/\/studio\/workflows\/definitions\/[^/]+/, { timeout: 60_000 });
+    await page.waitForURL(/\/studio\/workflows\/definitions\/[^/]+/, { timeout: E2E_TIMEOUTS.studioPage });
 
     const definitionId = extractDefinitionId(page.url());
     // Elsa 3.7 designer toolbar exposes Publish as icon-only controls; publish via API after UI create.
@@ -32,7 +33,7 @@ test.describe('Workflow lifecycle', () => {
 
     await studioShell.gotoInstances();
     await studioInstances.waitForLoaded();
-    await studioInstances.waitForInstanceStatus(workflowName, /finished|completed/i, 90_000);
+    await studioInstances.waitForInstanceStatus(workflowName, /finished|completed/i, E2E_TIMEOUTS.workflowPoll);
   });
 });
 

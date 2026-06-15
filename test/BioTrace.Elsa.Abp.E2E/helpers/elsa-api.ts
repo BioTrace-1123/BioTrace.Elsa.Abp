@@ -1,4 +1,5 @@
 import { expect, type APIRequestContext } from '@playwright/test';
+import { E2E_TIMEOUTS } from '../timeouts';
 import { requestPasswordToken } from './token-client';
 
 export interface ElsaApiOptions {
@@ -141,7 +142,7 @@ export class ElsaApi {
   async waitForRunnableInstance(
     definitionId: string,
     preferredInstanceId?: string,
-    timeoutMs = 90_000,
+    timeoutMs = E2E_TIMEOUTS.workflowPoll,
   ): Promise<string> {
     let instanceId = preferredInstanceId ?? '';
 
@@ -194,7 +195,7 @@ export class ElsaApi {
     return [instance.subStatus, instance.status].filter(Boolean).join(' ');
   }
 
-  async waitForInstanceStatus(instanceId: string, statusPattern: RegExp, timeoutMs = 90_000): Promise<void> {
+  async waitForInstanceStatus(instanceId: string, statusPattern: RegExp, timeoutMs = E2E_TIMEOUTS.workflowPoll): Promise<void> {
     await expect
       .poll(
         async () => {

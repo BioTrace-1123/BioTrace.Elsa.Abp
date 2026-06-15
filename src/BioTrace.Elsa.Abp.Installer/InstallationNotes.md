@@ -24,7 +24,17 @@ CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `
 2. **连接串**：配置 `ConnectionStrings:Default`（ABP）与 `ConnectionStrings:Elsa`（Elsa，必填且与 Default 分离）。
 3. **Host 管道**：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
 4. **权限**：为角色授予 `Abp.Elsa.*` 权限（见消费者指南）。
-5. **Elsa Studio（可选）**：Hosted 模式配置 `ElsaStudio` 节点，并在 WASM Client 调用 `AddBioTraceElsaAbpStudio()`；Host 调用 `AddBioTraceElsaAbpStudioHost()` / `UseBioTraceElsaAbpStudioHost()`。
+5. **Elsa Studio（可选）**：
+   - Host 引用 `BioTrace.Elsa.Abp.Studio.AspNetCore`，并运行脚手架生成 WASM Client：
+     ```bash
+     ./scripts/scaffold-elsa-studio-client.sh \
+       --name YourApp.Studio.Client \
+       --output src/YourApp.Studio.Client \
+       --host-project src/YourApp.HttpApi.Host/YourApp.HttpApi.Host.csproj \
+       --solution YourApp.sln
+     ```
+   - `BioTrace.Elsa.Abp.Studio.Client` **不**发布 NuGet；脚手架在调用方解决方案内创建仅含 `Program.cs`、`appsettings.json`、`.csproj` 的项目（`index.html` 由 `Studio.BlazorWasm` 提供）。
+   - Host 调用 `AddBioTraceElsaAbpStudioHost()` / `UseBioTraceElsaAbpStudioHost()` / `UseBioTraceElsaAbpStudioFallback()`；Client 调用 `AddBioTraceElsaAbpStudio()`。
 
 ## 文档
 

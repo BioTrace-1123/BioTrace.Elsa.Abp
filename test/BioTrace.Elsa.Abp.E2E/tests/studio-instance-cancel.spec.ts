@@ -1,9 +1,10 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
+import { E2E_TIMEOUTS } from '../timeouts';
 import { TestData } from '../test-data';
 
 test.describe('Workflow instance cancel', () => {
   test.skip(() => !projectIs('chromium-tenant-a-admin'), 'Runs on tenant-a-admin project only.');
-  test.setTimeout(180_000);
+  test.setTimeout(E2E_TIMEOUTS.instanceCancelTest);
 
   test('tenant-a-admin can cancel a running delay workflow instance from Studio', async ({
     page,
@@ -18,7 +19,7 @@ test.describe('Workflow instance cancel', () => {
     const instanceId = await elsaApi.waitForRunnableInstance(
       definitionId,
       executeResult.workflowInstanceId,
-      90_000,
+      E2E_TIMEOUTS.workflowPoll,
     );
 
     const runningInstance = await elsaApi.getWorkflowInstance(instanceId);

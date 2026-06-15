@@ -1,0 +1,17 @@
+<Project>
+  <!--
+    Provides default wwwroot/index.html for Elsa Studio WASM client shells.
+    NuGet consumers: imported via buildTransitive.
+    Repo ProjectReference consumers: import this file from the client .csproj.
+  -->
+  <PropertyGroup>
+    <_BioTraceElsaAbpStudioDefaultIndexHtml Condition="Exists('$(MSBuildThisFileDirectory)..\content\wwwroot\index.html')">$(MSBuildThisFileDirectory)..\content\wwwroot\index.html</_BioTraceElsaAbpStudioDefaultIndexHtml>
+    <_BioTraceElsaAbpStudioDefaultIndexHtml Condition="'$(_BioTraceElsaAbpStudioDefaultIndexHtml)' == '' And Exists('$(MSBuildThisFileDirectory)default-wwwroot\index.html')">$(MSBuildThisFileDirectory)default-wwwroot\index.html</_BioTraceElsaAbpStudioDefaultIndexHtml>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UsingMicrosoftNETSdkBlazorWebAssembly)' == 'true'
+                        And '$(_BioTraceElsaAbpStudioDefaultIndexHtml)' != ''
+                        And !Exists('$(MSBuildProjectDirectory)\wwwroot\index.html')">
+    <Content Include="$(_BioTraceElsaAbpStudioDefaultIndexHtml)" Link="wwwroot\index.html" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

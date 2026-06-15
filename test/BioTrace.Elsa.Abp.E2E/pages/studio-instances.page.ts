@@ -1,5 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { waitForInstancesReady } from '../helpers/studio-ready';
+import { E2E_TIMEOUTS } from '../timeouts';
 
 export class StudioInstancesPage {
   constructor(private readonly page: Page) {}
@@ -17,11 +18,11 @@ export class StudioInstancesPage {
     await searchBox.fill(instanceId);
 
     const row = this.page.getByRole('row').filter({ hasText: instanceId });
-    await row.first().waitFor({ state: 'visible', timeout: 60_000 });
+    await row.first().waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.studioPage });
     await expect(row.first()).toContainText(statusPattern);
   }
 
-  async waitForInstanceStatus(definitionId: string, statusPattern: RegExp, timeoutMs = 90_000): Promise<void> {
+  async waitForInstanceStatus(definitionId: string, statusPattern: RegExp, timeoutMs = E2E_TIMEOUTS.workflowPoll): Promise<void> {
     await expect
       .poll(
         async () => {
@@ -47,7 +48,7 @@ export class StudioInstancesPage {
     await searchBox.fill(instanceId);
 
     const row = this.page.getByRole('row').filter({ hasText: instanceId }).first();
-    await row.waitFor({ state: 'visible', timeout: 60_000 });
+    await row.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.studioPage });
 
     await row.locator('button').last().click();
     const cancelAction = this.page

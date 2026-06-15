@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BioTrace.Elsa.Abp.Studio.BlazorWasm\BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj" />
-    <ProjectReference Include="..\BioTrace.Elsa.Abp.Studio.Client\BioTrace.Elsa.Abp.Studio.Client.csproj" />
   </ItemGroup>
 
 </Project>

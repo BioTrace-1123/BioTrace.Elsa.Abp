@@ -34,7 +34,9 @@ public static class BioTraceElsaAbpStudioHostingExtensions
         }
 
         var pathBase = NormalizePathBase(options.PathBase);
+        var assetPathBase = pathBase.TrimStart('/');
         var studioContentPrefix = $"{pathBase}/_content";
+        var studioIndexPath = $"/{assetPathBase}/index.html";
 
         // Package _content assets stay at /_content while index.html uses <base href="/studio/">.
         app.Use(async (context, next) =>
@@ -43,6 +45,11 @@ public static class BioTraceElsaAbpStudioHostingExtensions
             if (requestPath?.StartsWith(studioContentPrefix, StringComparison.OrdinalIgnoreCase) == true)
             {
                 context.Request.Path = new PathString("/_content" + requestPath[studioContentPrefix.Length..]);
+            }
+            else if (ShouldServeStudioIndex(requestPath, pathBase, context.Request.Method))
+            {
+                // MapFallbackToFile("{*path:nonfile}") does not match bare /studio or extensionless SPA routes.
+                context.Request.Path = new PathString(studioIndexPath);
             }
 
             await next();
@@ -57,20 +64,40 @@ public static class BioTraceElsaAbpStudioHostingExtensions
             .GetRequiredService<IOptions<BioTraceElsaAbpStudioOptions>>()
             .Value;
 
-        if (!options.Enabled || app is not WebApplication webApp)
+        if (!options.Enabled)
         {
             return app;
         }
 
-        var pathBase = NormalizePathBase(options.PathBase);
-        var assetPathBase = pathBase.TrimStart('/');
-
-        // WASM assets under studio/_framework are served by UseStaticFiles + MapStaticAssets.
-        webApp.MapGroup(pathBase).MapFallbackToFile(
-            "{*path:nonfile}",
-            $"{assetPathBase}/index.html");
-
+        // SPA routes are rewritten to index.html in UseBioTraceElsaAbpStudioHost; static assets serve the file.
         return app;
+    }
+
+    private static bool ShouldServeStudioIndex(string? requestPath, string pathBase, string method)
+    {
+        if (!HttpMethods.IsGet(method) && !HttpMethods.IsHead(method))
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(requestPath)
+            || !requestPath.StartsWith(pathBase, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (requestPath.Length == pathBase.Length)
+        {
+            return true;
+        }
+
+        if (requestPath[pathBase.Length] != '/')
+        {
+            return false;
+        }
+
+        var relativePath = requestPath[(pathBase.Length + 1)..];
+        return !Path.HasExtension(relativePath);
     }
 
     private static string NormalizePathBase(string pathBase)

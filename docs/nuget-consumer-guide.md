@@ -40,11 +40,27 @@
 在调用方 Web 项目中额外安装：
 
 ```xml
-<PackageReference Include="BioTrace.Elsa.Abp.Studio.BlazorWasm" Version="1.0.0" />
 <PackageReference Include="BioTrace.Elsa.Abp.Studio.AspNetCore" Version="1.0.0" />
 ```
 
-调用方需自有 Blazor WASM Client 项目引用 `Studio.BlazorWasm`（演示见 [`src/BioTrace.Elsa.Abp.Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)，该壳**不**随 NuGet 发布）。
+| 组件 | NuGet | 调用方动作 |
+|------|-------|-----------|
+| `Studio.BlazorWasm` | 已发布 | WASM Client 项目 `PackageReference`（UI + 默认 `index.html`） |
+| `Studio.AspNetCore` | 已发布 | Host `PackageReference`（**仅**托管管道扩展） |
+| `Studio.Client` | **未发布** | **必须**在解决方案内新建 WASM 项目（脚手架或参考演示三文件） |
+| `Studio.Client`（未来） | 计划中、可选 | 若将来发布，可替代自建项目；**托管中间件仍在 AspNetCore** |
+
+生成 WASM Client 项目（推荐）：
+
+```bash
+./scripts/scaffold-elsa-studio-client.sh \
+  --name MyCompany.MyApp.Studio.Client \
+  --output src/MyCompany.MyApp.Studio.Client \
+  --host-project src/MyCompany.MyApp.HttpApi.Host/MyCompany.MyApp.HttpApi.Host.csproj \
+  --solution MyCompany.MyApp.sln
+```
+
+也可参考演示 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)（仅 `Program.cs`、`wwwroot/appsettings.json`、`.csproj` 三文件；`index.html` 由 `Studio.BlazorWasm` 提供）。
 
 ### Elsa EF 持久化（必填）
 
@@ -450,18 +466,21 @@ await app.RunBioTraceElsaAbpStudioAsync();
 
 ### 调用方 API 内嵌 Hosted WASM（同域 `/studio`）
 
-1. 引用 `BioTrace.Elsa.Abp.Studio.AspNetCore` 与 WASM Client 项目（可参考 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)）。
-2. 调用方模块中注册：
+1. Host 引用 `BioTrace.Elsa.Abp.Studio.AspNetCore` NuGet。
+2. 在解决方案内新建 WASM Client（运行 [`scaffold-elsa-studio-client.sh`](../scripts/scaffold-elsa-studio-client.sh) 或参考 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)），Host `ProjectReference` 该 Client。
+3. 调用方 Host 模块中注册（**勿**在 Client 中实现托管中间件）：
 
 ```csharp
 context.Services.AddBioTraceElsaAbpStudioHost(configuration);
 
 // OnApplicationInitialization，在 UseConfiguredEndpoints 之前：
 app.UseBioTraceElsaAbpStudioHost();
+// ...
+app.UseBioTraceElsaAbpStudioFallback();
 ```
 
-3. 配置 `ElsaStudio:Enabled`、`ElsaStudio:PathBase`（默认 `/studio`）。
-4. OpenIddict 客户端 `ElsaStudio` 的 `RedirectUris` 须与 `PathBase` 对齐（如 `https://api.example.com/studio/authentication/login-callback`）。
+4. 配置 `ElsaStudio:Enabled`、`ElsaStudio:PathBase`（默认 `/studio`）。
+5. OpenIddict 客户端 `ElsaStudio` 的 `RedirectUris` 须与 `PathBase` 对齐（如 `https://api.example.com/studio/authentication/login-callback`）。
 
 RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-user 权限查询；配置 `ElsaStudio:Tenancy:Tenants` 供根租户（Host）用户切换租户。
 
@@ -478,6 +497,7 @@ RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-u
 | 租户用户看不到 Elsa 数据 / 串租户 | 确认 `EnableMultiTenancy=true`、`UseMultiTenancy()` 与 `UseElsaAbpMultiTenancy()` 顺序；API 携带 `__tenant` Header |
 | Elsa Studio 多租户 | 引用 `BioTrace.Elsa.Abp.Studio.BlazorWasm` 并调用 `AddBioTraceElsaAbpStudio()`；配置 `ElsaStudio:Tenancy:Tenants` 供根租户（Host）用户切换；Hosted 模式另需 `AddBioTraceElsaAbpStudioHost()` |
 | Studio OIDC redirect 失败 | 确认 OpenIddict `RedirectUris` 与 `ElsaStudio:PathBase` 一致；开发环境重启调用方应用触发 Seed 更新 |
+| `NU1101` 找不到 `Studio.Client` | `Studio.Client` 不发布 NuGet；仅引用 `Studio.AspNetCore`，并自建 WASM Client 项目 |
 
 ## 相关文档
 

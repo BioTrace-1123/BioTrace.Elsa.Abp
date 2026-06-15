@@ -37,7 +37,7 @@ src/
   BioTrace.Elsa.Abp.Installer
   BioTrace.Elsa.Abp.Studio.BlazorWasm    # Elsa Studio ABP 集成 RCL（租户/权限/组件）
   BioTrace.Elsa.Abp.Studio.AspNetCore    # Hosted WASM 服务端扩展
-  BioTrace.Elsa.Abp.Studio.Client        # 演示用 Studio WASM 壳（不单独发布 NuGet）
+  BioTrace.Elsa.Abp.Studio.Client        # 演示用 Studio WASM 壳三文件样板（不发布 NuGet；可用 scaffold 脚本生成）
 host/                                    # 仅本地验证，不发布 NuGet
   BioTrace.Elsa.Abp.HttpApi.Host         # 集成演示与 E2E（含 /studio）
 test/
@@ -521,7 +521,7 @@ PR 合并前三个 job 均须通过。
 | `BioTrace.Elsa.Abp.AspNetCore` | **集成入口**（Elsa 注册、权限桥接、多租户） |
 | `BioTrace.Elsa.Abp.HttpApi` | `current-user` 等 ABP API |
 | `BioTrace.Elsa.Abp.Studio.BlazorWasm` | Studio UI 与 ABP 租户/权限组件 |
-| `BioTrace.Elsa.Abp.Studio.AspNetCore` | 调用方内嵌 `/studio` 扩展 |
+| `BioTrace.Elsa.Abp.Studio.AspNetCore` | 调用方内嵌 `/studio` 托管扩展（不含 WASM 壳） |
 | `BioTrace.Elsa.Abp.Application` | 示例 Activity 等（`AspNetCore` 传递） |
 | `BioTrace.Elsa.Abp.Application.Contracts` | 权限常量、DTO（传递或单独引用） |
 | `BioTrace.Elsa.Abp.Domain` / `Domain.Shared` | 选项与常量（传递） |
@@ -535,6 +535,7 @@ PR 合并前三个 job 均须通过。
 3. README 完整：确认模块集成方式、连接串、权限说明与版本策略无误。
 4. NuGet Trusted Publishing：在 [nuget.org Trusted Publishing](https://www.nuget.org/account/trustedpublishing) 配置策略（Repository Owner: `BioTrace-1123`，Repository: `BioTrace.Elsa.Abp`，Workflow: `nuget-publish.yml`，Package owner 与下方 Secret 一致）；在 GitHub 仓库 Secrets 设置 `NUGET_USER`（NuGet.org **用户名**，如 `a1mu`，非邮箱）。无需长期 `NUGET_API_KEY`。
 5. 许可证：根目录 `LICENSE`（MIT），NuGet 元数据见 `common.props` 的 `PackageLicenseExpression`。
+6. 传递依赖：运行 `./scripts/verify-nuget-dependencies.sh`，或依赖 CI `nuget-pack-verify` job，确保所有 `BioTrace.Elsa.Abp.*` 传递依赖均已打包。
 
 ### 本地打包验证
 

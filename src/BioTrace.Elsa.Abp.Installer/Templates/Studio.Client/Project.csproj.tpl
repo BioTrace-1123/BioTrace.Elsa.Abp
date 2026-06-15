@@ -6,20 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
-    <RootNamespace>BioTrace.Elsa.Abp.Studio.Client</RootNamespace>
+    <RootNamespace>{{RootNamespace}}</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <!-- Align static web assets with ElsaStudio:PathBase (default /studio). -->
     <StaticWebAssetBasePath>studio</StaticWebAssetBasePath>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BioTrace.Elsa.Abp.Studio.BlazorWasm" Version="{{PackageVersion}}" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.8" PrivateAssets="all" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\BioTrace.Elsa.Abp.Studio.BlazorWasm\BioTrace.Elsa.Abp.Studio.BlazorWasm.csproj" />
-  </ItemGroup>
-
-  <Import Project="..\BioTrace.Elsa.Abp.Studio.BlazorWasm\build\BioTrace.Elsa.Abp.Studio.BlazorWasm.targets" />
 
 </Project>

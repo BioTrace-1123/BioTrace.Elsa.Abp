@@ -30,6 +30,13 @@
       <Pack>true</Pack>
       <PackagePath>content\</PackagePath>
     </Content>
+    <Compile Remove="Templates\**\*" />
+    <Content Remove="Templates\**\*" />
+    <None Remove="Templates\**\*" />
+    <Content Include="Templates\**\*">
+      <Pack>true</Pack>
+      <PackagePath>content\Templates\</PackagePath>
+    </Content>
   </ItemGroup>
 
 </Project>
