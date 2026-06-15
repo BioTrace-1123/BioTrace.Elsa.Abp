@@ -304,23 +304,26 @@ Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](
 
 | 键 | 默认 | 说明 |
 |---|---|---|
-| `RunMigrations` | `true` | 注册 HostedService，启动时迁移 Elsa Management/Runtime 库 |
+| `RunMigrations` | `true` | 为 `true` 时注册 HostedService，启动时迁移 Elsa 库；为 `false` 时仍注册 `IElsaDatabaseMigrator` 供 DbMigrator 调用 |
 | `MigrateOnlyInDevelopment` | `true` | 为 `true` 时生产环境跳过 HostedService 迁移 |
+| `DeferTenantActivationUntilReady` | `false` | 为 `true` 时 ABP 租户库未就绪仅返回 Host 租户，避免冷启动失败 |
 
-**持久化模块**须设置 `ef.RunMigrations = false`，避免与 HostedService 双路径迁移。
+**持久化模块**须设置 `ef.RunMigrations = false`，避免与模块迁移器双路径迁移。
 
 **DbMigrator / CI 显式迁移**（生产推荐）：
 
 ```csharp
 using BioTrace.Elsa.Abp.Data;
 
-// 在 DbMigrator Main 或模块初始化完成、Host 启动前：
-await serviceProvider.MigrateElsaDatabasesAsync();
+// Host 配置 Elsa:RunMigrations=false 时，在 DbMigrator 中强制迁移：
+await serviceProvider.MigrateElsaDatabasesAsync(force: true);
 ```
 
-调用方 DbMigrator 通常先迁移 ABP 业务库（Identity / OpenIddict / Permission），再调用上述扩展迁移 Elsa 库。
+演示样板：[`host/BioTrace.Elsa.Abp.DbMigrator`](../host/BioTrace.Elsa.Abp.DbMigrator)（先迁移 ABP 库，再 `force: true` 迁移 Elsa）。
 
-**配置模板**：可复制 [`docs/appsettings.elsa.json`](appsettings.elsa.json)，或使用 [`scripts/merge-appsettings-elsa.sh`](../scripts/merge-appsettings-elsa.sh) 合并到现有 `appsettings.json`。
+**迁移顺序**：ABP DbMigrator（Default 库）→ `MigrateElsaDatabasesAsync(force: true)` → Host 启动 → 数据种子。
+
+**配置模板**：[`docs/appsettings.elsa.json`](appsettings.elsa.json)、[`docs/appsettings.elsa.studio.json`](appsettings.elsa.studio.json)；合并脚本 [`scripts/merge-appsettings-elsa.sh`](../scripts/merge-appsettings-elsa.sh)。
 
 ## 权限配置
 
@@ -353,6 +356,8 @@ await serviceProvider.MigrateElsaDatabasesAsync();
 在调用方 `IDataSeedContributor` 或管理界面中为角色授权。
 
 **可复用基类**（`BioTrace.Elsa.Abp.Application`）：继承 [`ElsaAbpPermissionDataSeedContributor`](../src/BioTrace.Elsa.Abp.Application/Data/ElsaAbpPermissionDataSeedContributor.cs)，通过 `ElsaAbpPermissionSeedOptions.RolePermissions` 配置默认角色 → `Abp.Elsa.*` 映射，或重写 `SeedAsync` 调用 `SeedRoleAsync` / `GrantRolePermissionsAsync` 辅助方法。
+
+**OpenIddict 种子**：继承 [`ElsaAbpOpenIddictDataSeedContributor`](../src/BioTrace.Elsa.Abp.Application/Data/ElsaAbpOpenIddictDataSeedContributor.cs)，在 Host 程序集中实现 `ITransientDependency`（演示见 [`ElsaAbpHostOpenIddictDataSeedContributor`](../host/BioTrace.Elsa.Abp.HttpApi.Host/Data/ElsaAbpHostOpenIddictDataSeedContributor.cs)）；从 `OpenIddict:Applications` 读取客户端并支持 RedirectUri 合并更新。
 
 演示项目分 **Host** 与 **租户内** 两套种子（无 Host 级 `designer` / `operator` 角色）：
 
@@ -538,7 +543,7 @@ RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-u
 | 场景 | 说明 |
 |------|------|
 | 演示 Host | 使用 **ABP Basic Theme**，登录页 `/Account/Login` |
-| Nexus / LeptonXLite 等 | 登录页路径与布局不同；**Studio OIDC 回调 URI 不变**（仍指向 `{Authority}/studio/authentication/login-callback`） |
+| Nexus / LeptonXLite 等 | 见 [UI 主题文档](ui-theme-nexus.md)；登录页路径与布局不同；**Studio OIDC 回调 URI 不变** |
 | Host 用户租户切换 | Studio 内 MudSelect（动态 ABP 租户 API）；ABP 管理 UI 在 Host 侧维护租户 |
 | 租户用户 | 登录时须选/填租户（`__tenant`）；Studio 租户上下文锁定，不显示下拉 |
 
@@ -573,4 +578,7 @@ ABP API（`/swagger`）与 Elsa API（`/swagger/elsa`）使用**不同 Swagger U
 
 - [README 调用方集成清单](../README.md#调用方集成清单)
 - [README 安全集成](../README.md#安全集成abp-openiddict--elsa-370)
+- [UI 主题（Nexus/LeptonXLite）](ui-theme-nexus.md)
+- [Elsa 升级检查清单](elsa-upgrade-checklist.md)
+- [集成测试样板](samples/HttpApi.Host.Tests/README.md)
 - [NuGet 发布准备](../README.md#nuget-发布准备)
