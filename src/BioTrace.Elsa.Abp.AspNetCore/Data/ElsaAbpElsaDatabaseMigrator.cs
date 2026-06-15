@@ -10,7 +10,7 @@ namespace BioTrace.Elsa.Abp.Data;
 /// <summary>
 /// Applies Elsa Management/Runtime EF Core migrations for the configured Elsa persistence provider.
 /// </summary>
-public class ElsaAbpElsaDatabaseMigrator
+public class ElsaAbpElsaDatabaseMigrator : IElsaDatabaseMigrator
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IHostEnvironment _hostEnvironment;
@@ -26,8 +26,13 @@ public class ElsaAbpElsaDatabaseMigrator
         _options = options.Value;
     }
 
-    public virtual bool ShouldMigrate()
+    public virtual bool ShouldMigrate(bool force = false)
     {
+        if (force)
+        {
+            return true;
+        }
+
         if (!_options.RunMigrations)
         {
             return false;
@@ -41,9 +46,14 @@ public class ElsaAbpElsaDatabaseMigrator
         return true;
     }
 
-    public virtual async Task MigrateAsync(CancellationToken cancellationToken = default)
+    public virtual Task MigrateAsync(CancellationToken cancellationToken = default)
     {
-        if (!ShouldMigrate())
+        return MigrateAsync(force: false, cancellationToken);
+    }
+
+    public virtual async Task MigrateAsync(bool force, CancellationToken cancellationToken = default)
+    {
+        if (!ShouldMigrate(force))
         {
             return;
         }
