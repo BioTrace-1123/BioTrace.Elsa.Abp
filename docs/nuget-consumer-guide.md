@@ -50,14 +50,15 @@
 | `Studio.Client` | **未发布** | **必须**在解决方案内新建 WASM 项目（脚手架或参考演示三文件） |
 | `Studio.Client`（未来） | 计划中、可选 | 若将来发布，可替代自建项目；**托管中间件仍在 AspNetCore** |
 
-生成 WASM Client 项目（推荐）：
+生成 WASM Client 项目（推荐，**自动添加** Host 的 `Studio.AspNetCore` 引用）：
 
 ```bash
 ./scripts/scaffold-elsa-studio-client.sh \
   --name MyCompany.MyApp.Studio.Client \
   --output src/MyCompany.MyApp.Studio.Client \
   --host-project src/MyCompany.MyApp.HttpApi.Host/MyCompany.MyApp.HttpApi.Host.csproj \
-  --solution MyCompany.MyApp.sln
+  --solution MyCompany.MyApp.sln \
+  --register-host-module
 ```
 
 也可参考演示 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)（仅 `Program.cs`、`wwwroot/appsettings.json`、`.csproj` 三文件；`index.html` 由 `Studio.BlazorWasm` 提供）。
@@ -91,7 +92,7 @@ public class MyAppElsaPostgreSqlModule : ElsaAbpAspNetCoreModule
             management.UseEntityFrameworkCore(ef =>
             {
                 ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
+                ef.RunMigrations = false;
             });
         });
 
@@ -100,7 +101,7 @@ public class MyAppElsaPostgreSqlModule : ElsaAbpAspNetCoreModule
             runtime.UseEntityFrameworkCore(ef =>
             {
                 ef.UsePostgreSql(ResolveElsaConnectionString);
-                ef.RunMigrations = options.RunMigrations;
+                ef.RunMigrations = false;
             });
         });
     }
@@ -290,7 +291,36 @@ Configure<AbpDbConnectionOptions>(options =>
 });
 ```
 
-Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](https://elsaworkflows.io/) 自行维护；本模块不提供 Elsa 升级迁移指南。
+Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](https://elsaworkflows.io/) 自行维护；本模块在 `BioTrace.Elsa.Abp.AspNetCore` 中提供迁移辅助（见下节）。
+
+### 3. Elsa 库迁移（`BioTrace.Elsa.Abp.AspNetCore`）
+
+| 环境 | ABP 业务库 | Elsa 工作流库 |
+|------|-----------|--------------|
+| **开发** | 调用方 DbMigrator 或 Host 启动前迁移 | `Elsa:RunMigrations=true`（`ElsaAbpElsaDatabaseMigrationHostedService`） |
+| **生产** | 调用方 DbMigrator / CI | `Elsa:RunMigrations=false`；在 DbMigrator 或 CI 中显式迁移 |
+
+**配置项**（`appsettings.json` → `Elsa` 节）：
+
+| 键 | 默认 | 说明 |
+|---|---|---|
+| `RunMigrations` | `true` | 注册 HostedService，启动时迁移 Elsa Management/Runtime 库 |
+| `MigrateOnlyInDevelopment` | `true` | 为 `true` 时生产环境跳过 HostedService 迁移 |
+
+**持久化模块**须设置 `ef.RunMigrations = false`，避免与 HostedService 双路径迁移。
+
+**DbMigrator / CI 显式迁移**（生产推荐）：
+
+```csharp
+using BioTrace.Elsa.Abp.Data;
+
+// 在 DbMigrator Main 或模块初始化完成、Host 启动前：
+await serviceProvider.MigrateElsaDatabasesAsync();
+```
+
+调用方 DbMigrator 通常先迁移 ABP 业务库（Identity / OpenIddict / Permission），再调用上述扩展迁移 Elsa 库。
+
+**配置模板**：可复制 [`docs/appsettings.elsa.json`](appsettings.elsa.json)，或使用 [`scripts/merge-appsettings-elsa.sh`](../scripts/merge-appsettings-elsa.sh) 合并到现有 `appsettings.json`。
 
 ## 权限配置
 
@@ -320,7 +350,11 @@ Elsa 工作流库的表结构与版本升级由调用方按 [Elsa 官方文档](
 
 ### 为角色授予权限
 
-在调用方 `IDataSeedContributor` 或管理界面中为角色授权。演示项目分 **Host** 与 **租户内** 两套种子（无 Host 级 `designer` / `operator` 角色）：
+在调用方 `IDataSeedContributor` 或管理界面中为角色授权。
+
+**可复用基类**（`BioTrace.Elsa.Abp.Application`）：继承 [`ElsaAbpPermissionDataSeedContributor`](../src/BioTrace.Elsa.Abp.Application/Data/ElsaAbpPermissionDataSeedContributor.cs)，通过 `ElsaAbpPermissionSeedOptions.RolePermissions` 配置默认角色 → `Abp.Elsa.*` 映射，或重写 `SeedAsync` 调用 `SeedRoleAsync` / `GrantRolePermissionsAsync` 辅助方法。
+
+演示项目分 **Host** 与 **租户内** 两套种子（无 Host 级 `designer` / `operator` 角色）：
 
 **Host（`ElsaAbpHostDataSeedContributor`）** — 用户 `admin`，角色 `admin`：
 
@@ -450,6 +484,10 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 
 集成测矩阵（T0–T11）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 与 [README 集成测说明](../README.md#演示项目集成测)。
 
+可复用测试辅助包 **`BioTrace.Elsa.Abp.IntegrationTesting`**（NuGet）：提供 `ElsaAbpIntegrationTestWebApplicationFactory<TEntryPoint>`、`OpenIddictTokenClient`、`PostgresAvailability` 等。调用方引用后继承 Factory 并指向自有 Host `Program` 类型即可复现 T0–T11 模式。
+
+Playwright E2E 套件位于 [`test/BioTrace.Elsa.Abp.E2E`](../test/BioTrace.Elsa.Abp.E2E/)（npm 项目，未 NuGet 化）；消费者可复制 spec 与 [`scripts/test-e2e.sh`](../scripts/test-e2e.sh) 启动逻辑。
+
 ## Elsa Studio 集成（可选）
 
 ### 自有 Blazor WASM 客户端项目
@@ -466,23 +504,55 @@ await app.RunBioTraceElsaAbpStudioAsync();
 
 ### 调用方 API 内嵌 Hosted WASM（同域 `/studio`）
 
-1. Host 引用 `BioTrace.Elsa.Abp.Studio.AspNetCore` NuGet。
-2. 在解决方案内新建 WASM Client（运行 [`scaffold-elsa-studio-client.sh`](../scripts/scaffold-elsa-studio-client.sh) 或参考 [`Studio.Client`](../src/BioTrace.Elsa.Abp.Studio.Client/)），Host `ProjectReference` 该 Client。
-3. 调用方 Host 模块中注册（**勿**在 Client 中实现托管中间件）：
+1. 运行脚手架（**会自动**向 Host 添加 `BioTrace.Elsa.Abp.Studio.AspNetCore` NuGet 与 Client `ProjectReference`）：
+
+```bash
+./scripts/scaffold-elsa-studio-client.sh \
+  --name MyCompany.MyApp.Studio.Client \
+  --output src/MyCompany.MyApp.Studio.Client \
+  --host-project src/MyCompany.MyApp.HttpApi.Host/MyCompany.MyApp.HttpApi.Host.csproj \
+  --solution MyCompany.MyApp.sln \
+  --register-host-module
+```
+
+2. 若未使用 `--register-host-module`，在调用方 Host 模块中手动注册（**勿**在 Client 中实现托管中间件）：
 
 ```csharp
 context.Services.AddBioTraceElsaAbpStudioHost(configuration);
 
 // OnApplicationInitialization，在 UseConfiguredEndpoints 之前：
 app.UseBioTraceElsaAbpStudioHost();
-// ...
-app.UseBioTraceElsaAbpStudioFallback();
 ```
 
-4. 配置 `ElsaStudio:Enabled`、`ElsaStudio:PathBase`（默认 `/studio`）。
-5. OpenIddict 客户端 `ElsaStudio` 的 `RedirectUris` 须与 `PathBase` 对齐（如 `https://api.example.com/studio/authentication/login-callback`）。
+3. 配置 `ElsaStudio:Enabled`、`ElsaStudio:PathBase`（默认 `/studio`）。
+4. OpenIddict 客户端 `ElsaStudio` 的 `RedirectUris` 须与 `PathBase` 对齐（如 `https://api.example.com/studio/authentication/login-callback`）。
 
-RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-user 权限查询；配置 `ElsaStudio:Tenancy:Tenants` 供根租户（Host）用户切换租户。
+> **迁移说明**：`UseBioTraceElsaAbpStudioFallback()` 已废弃（no-op），SPA 路由由 `UseBioTraceElsaAbpStudioHost()` 处理。详见包内 `CHANGELOG.md`。
+
+RCL 已内置 `AbpTenantHeaderDelegatingHandler`、租户下拉 UI 与 current-user 权限查询。
+
+**动态租户列表**：默认 `ElsaStudio:Tenancy:UseAbpTenantApi=true`，Studio 从 ABP `GET /api/multi-tenancy/tenants` 拉取租户（Host 用户切换场景）。调用方须引用 `Volo.Abp.TenantManagement.HttpApi` 并 `[DependsOn(typeof(AbpTenantManagementHttpApiModule))]`。API 不可用时回退到静态 `ElsaStudio:Tenancy:Tenants` 配置。
+
+## UI 主题与登录 UX
+
+| 场景 | 说明 |
+|------|------|
+| 演示 Host | 使用 **ABP Basic Theme**，登录页 `/Account/Login` |
+| Nexus / LeptonXLite 等 | 登录页路径与布局不同；**Studio OIDC 回调 URI 不变**（仍指向 `{Authority}/studio/authentication/login-callback`） |
+| Host 用户租户切换 | Studio 内 MudSelect（动态 ABP 租户 API）；ABP 管理 UI 在 Host 侧维护租户 |
+| 租户用户 | 登录时须选/填租户（`__tenant`）；Studio 租户上下文锁定，不显示下拉 |
+
+集成 Studio 前请确认 OpenIddict 客户端 `ElsaStudio` 的 RedirectUris 与 `ElsaStudio:PathBase` 一致，与 UI 主题无关。
+
+## 双 Swagger 认证
+
+ABP API（`/swagger`）与 Elsa API（`/swagger/elsa`）使用**不同 Swagger UI 授权方式**：
+
+1. 打开 `{Authority}/swagger`，OAuth2 登录（ClientId 如 `MyApp_Swagger`）。
+2. 从 OAuth 对话框或浏览器 DevTools → Network → `/connect/token` 响应复制 `access_token`。
+3. 打开 `{Authority}/swagger/elsa`，在 **Bearer** 栏填入 `Bearer {access_token}`（Elsa 不支持 ABP Swagger 的一键 OAuth）。
+
+`GET /api/abp/elsa/current-user` 仍可用于查看当前用户映射后的 Elsa `permissions` 列表。
 
 ## 常见问题
 
