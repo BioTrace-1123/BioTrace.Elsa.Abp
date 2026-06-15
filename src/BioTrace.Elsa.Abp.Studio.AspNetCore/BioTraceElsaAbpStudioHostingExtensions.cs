@@ -58,6 +58,7 @@ public static class BioTraceElsaAbpStudioHostingExtensions
         return app;
     }
 
+    [Obsolete("SPA 路由已在 UseBioTraceElsaAbpStudioHost 处理，将在 2.0 移除。")]
     public static IApplicationBuilder UseBioTraceElsaAbpStudioFallback(this IApplicationBuilder app)
     {
         var options = app.ApplicationServices
