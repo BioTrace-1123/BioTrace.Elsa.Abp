@@ -9,6 +9,7 @@
 @inject IConfiguration Configuration
 @inject IAbpStudioTenantContext TenantContext
 @inject IElsaAbpStudioPermissionService PermissionService
+@inject IStudioTenantDirectory TenantDirectory
 
 @if (CurrentState?.User.Identity?.IsAuthenticated is true)
 {
@@ -64,8 +65,7 @@
         Configuration["ElsaStudio:Authentication:OpenIdConnect:AccountManagementUrl"]
         ?? BuildAccountManagementUrl(Configuration["ElsaStudio:Authentication:OpenIdConnect:Authority"]);
 
-    private IReadOnlyList<StudioTenantOption> AvailableTenants =>
-        Configuration.GetSection("ElsaStudio:Tenancy:Tenants").Get<List<StudioTenantOption>>() ?? [];
+    private IReadOnlyList<StudioTenantOption> AvailableTenants { get; set; } = [];
 
     private bool ShowTenantSelector => !TenantContext.IsTenantLocked && AvailableTenants.Count > 0;
 
@@ -79,6 +79,13 @@
 
         await TenantContext.InitializeAsync();
         await PermissionService.GetPermissionsAsync();
+        await ReloadTenantsAsync();
+    }
+
+    protected virtual async Task ReloadTenantsAsync()
+    {
+        AvailableTenants = await TenantDirectory.GetTenantsAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
@@ -95,6 +102,7 @@
         CurrentState = await state;
         PermissionService.InvalidateCache();
         await PermissionService.GetPermissionsAsync();
+        await ReloadTenantsAsync();
 
         var nextUserId = CurrentState.User.FindFirst("sub")?.Value
                          ?? CurrentState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

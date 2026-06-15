@@ -1,5 +1,6 @@
 using BioTrace.Elsa.Abp.Elsa;
 using BioTrace.Elsa.Abp.Studio.Models;
+using BioTrace.Elsa.Abp.Studio.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
 
@@ -11,15 +12,20 @@ public class AbpStudioTenantContext : IAbpStudioTenantContext
 
     private readonly IJSRuntime _jsRuntime;
     private readonly IConfiguration _configuration;
+    private readonly IStudioTenantDirectory _tenantDirectory;
     private string? _currentTenantName;
     private bool _isTenantLocked;
     private bool _initialized;
     private Guid? _lastUserId;
 
-    public AbpStudioTenantContext(IJSRuntime jsRuntime, IConfiguration configuration)
+    public AbpStudioTenantContext(
+        IJSRuntime jsRuntime,
+        IConfiguration configuration,
+        IStudioTenantDirectory tenantDirectory)
     {
         _jsRuntime = jsRuntime;
         _configuration = configuration;
+        _tenantDirectory = tenantDirectory;
     }
 
     public string? CurrentTenantName => _currentTenantName;
@@ -104,7 +110,7 @@ public class AbpStudioTenantContext : IAbpStudioTenantContext
 
         if (currentUser.TenantId.HasValue)
         {
-            var configuredName = ResolveConfiguredTenantName(currentUser.TenantId.Value);
+            var configuredName = await ResolveConfiguredTenantName(currentUser.TenantId.Value, cancellationToken);
             if (!string.IsNullOrWhiteSpace(configuredName))
             {
                 return configuredName;
@@ -116,9 +122,11 @@ public class AbpStudioTenantContext : IAbpStudioTenantContext
         return null;
     }
 
-    protected virtual string? ResolveConfiguredTenantName(Guid tenantId)
+    protected virtual async Task<string?> ResolveConfiguredTenantName(
+        Guid tenantId,
+        CancellationToken cancellationToken = default)
     {
-        var tenants = _configuration.GetSection("ElsaStudio:Tenancy:Tenants").Get<List<StudioTenantOption>>() ?? [];
+        var tenants = await _tenantDirectory.GetTenantsAsync(cancellationToken);
         return tenants.FirstOrDefault(tenant =>
                 string.Equals(tenant.Id, tenantId.ToString("D"), StringComparison.OrdinalIgnoreCase)
                 || string.Equals(tenant.Id, tenantId.ToString("N"), StringComparison.OrdinalIgnoreCase))

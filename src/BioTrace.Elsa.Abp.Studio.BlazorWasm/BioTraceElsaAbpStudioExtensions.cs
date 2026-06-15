@@ -64,6 +64,8 @@ public static class BioTraceElsaAbpStudioExtensions
 
         builder.Services.AddTransient<AbpTenantHeaderDelegatingHandler>();
         builder.Services.AddScoped<IAbpStudioTenantContext, AbpStudioTenantContext>();
+        builder.Services.Configure<BioTraceElsaAbpStudioOptions>(configuration.GetSection("ElsaStudio"));
+        RegisterStudioTenantDirectory(builder, configuration);
 
         var backendApiConfig = new BackendApiConfig
         {
@@ -148,6 +150,24 @@ public static class BioTraceElsaAbpStudioExtensions
             .AddHttpMessageHandler<AbpTenantHeaderDelegatingHandler>();
 
         services.AddScoped<ICreateWorkflowDialogComponentProvider, AbpCreateWorkflowDialogComponentProvider>();
+    }
+
+    private static void RegisterStudioTenantDirectory(WebAssemblyHostBuilder builder, IConfiguration configuration)
+    {
+        var authority = configuration["ElsaStudio:Authentication:OpenIdConnect:Authority"]?.TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(authority))
+        {
+            builder.Services.AddScoped<IStudioTenantDirectory, ConfigurationStudioTenantDirectory>();
+            return;
+        }
+
+        builder.Services.AddHttpClient<AbpApiStudioTenantDirectory>(client =>
+            {
+                client.BaseAddress = new Uri(authority + "/");
+            });
+
+        builder.Services.AddScoped<ConfigurationStudioTenantDirectory>();
+        builder.Services.AddScoped<IStudioTenantDirectory, StudioTenantDirectory>();
     }
 
     internal static string ResolveAbsoluteBackendUrl(

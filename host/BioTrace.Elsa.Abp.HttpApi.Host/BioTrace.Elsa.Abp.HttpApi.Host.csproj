@@ -69,6 +69,7 @@
     <PackageReference Include="Volo.Abp.Swashbuckle" Version="10.4.0" />
     <PackageReference Include="Volo.Abp.TenantManagement.Application" Version="10.4.0" />
     <PackageReference Include="Volo.Abp.TenantManagement.EntityFrameworkCore" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.TenantManagement.HttpApi" Version="10.4.0" />
 
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.AspNetCore\BioTrace.Elsa.Abp.AspNetCore.csproj" />
 
