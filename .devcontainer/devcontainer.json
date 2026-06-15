@@ -22,7 +22,7 @@
     "SSH_AUTH_SOCK": "/tmp/ssh-agent.sock"
   },
   "postCreateCommand": "bash .devcontainer/setup-git.sh && bash .devcontainer/setup-playwright.sh && dotnet tool restore && dotnet dev-certs https && dotnet restore BioTrace.Elsa.Abp.slnx && npm install --prefix host/BioTrace.Elsa.Abp.HttpApi.Host",
-  "postStartCommand": "bash .devcontainer/setup-git.sh",
+  "postStartCommand": "bash .devcontainer/setup-git.sh && dotnet tool restore",
   "customizations": {
     "vscode": {
       "extensions": [
