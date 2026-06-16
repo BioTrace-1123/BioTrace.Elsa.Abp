@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.7" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="10.0.9" />
     <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.EntityFrameworkCore\BioTrace.Elsa.Abp.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\BioTrace.Elsa.Abp.Application.Tests\BioTrace.Elsa.Abp.Application.Tests.csproj" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.Sqlite" Version="10.4.0"/>
