@@ -487,7 +487,7 @@ public class MyAppElsaModule : ElsaAbpAspNetCoreModule
 4. 使用仅 `WorkflowDefinitions.Read` 的用户尝试 `POST /elsa/api/workflow-definitions`，应返回 403。
 5. 调用 `GET /api/abp/elsa/current-user`，确认 `permissions` 与角色一致。
 
-集成测矩阵（T0–T11）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 与 [README 集成测说明](../README.md#演示项目集成测)。
+集成测矩阵（T0–T11）见 [`test/BioTrace.Elsa.Abp.HttpApi.Host.Tests`](../test/BioTrace.Elsa.Abp.HttpApi.Host.Tests/) 与 [集成测试样板 — T0–T11](samples/HttpApi.Host.Tests/README.md#5-仓库演示项目集成测t0t11)。
 
 可复用测试辅助包 **`BioTrace.Elsa.Abp.IntegrationTesting`**（NuGet）：提供 `ElsaAbpIntegrationTestWebApplicationFactory<TEntryPoint>`、`OpenIddictTokenClient`、`PostgresAvailability` 等。调用方引用后继承 Factory 并指向自有 Host `Program` 类型即可复现 T0–T11 模式。
 
@@ -581,4 +581,4 @@ ABP API（`/swagger`）与 Elsa API（`/swagger/elsa`）使用**不同 Swagger U
 - [UI 主题（Nexus/LeptonXLite）](ui-theme-nexus.md)
 - [Elsa 升级检查清单](elsa-upgrade-checklist.md)
 - [集成测试样板](samples/HttpApi.Host.Tests/README.md)
-- [NuGet 发布准备](../README.md#nuget-发布准备)
+- [NuGet 发布指南](release.md)（维护者）
