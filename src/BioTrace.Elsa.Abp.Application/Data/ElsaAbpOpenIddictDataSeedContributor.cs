@@ -6,7 +6,11 @@ using Volo.Abp.Uow;
 
 namespace BioTrace.Elsa.Abp.Data;
 
-public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor, ITransientDependency
+/// <summary>
+/// Seeds OpenIddict scopes and applications from <c>OpenIddict:Applications</c> configuration.
+/// Merges RedirectUri updates when Studio PathBase changes.
+/// </summary>
+public class ElsaAbpOpenIddictDataSeedContributor : IDataSeedContributor
 {
     private readonly IConfiguration _configuration;
     private readonly IOpenIddictApplicationManager _applicationManager;

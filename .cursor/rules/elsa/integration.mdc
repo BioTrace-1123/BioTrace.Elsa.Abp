@@ -45,7 +45,8 @@ alwaysApply: false
 - **`ITenantAccessor` 须在 `AddElsa` 之后** 由 `ConfigureElsaMultiTenancyServices`（及 `PostConfigureServices`）注册，避免被 Elsa `MultitenancyFeature` 覆盖。
 - **共享 Elsa 库**：单一 `ConnectionStrings:Elsa`，Elsa EF 按 `TenantId` 全局过滤器隔离；**不**启用 Elsa 自带 Tenant CRUD endpoints。
 - **ID 映射**：ABP Host（`ICurrentTenant.Id == null`）→ Elsa `""`；ABP 租户 `Guid` → Elsa `guid.ToString("D")`（与 JWT `tenantid` 一致）。
-- 核心类型：`ElsaAbpTenantMapper`、`ElsaAbpTenantsProvider`、`ElsaAbpCurrentTenantResolver`、`ElsaAbpTenantAccessor`、`ElsaAbpMultiTenancyMiddleware`。
+- 核心类型：`ElsaAbpTenantMapper`、`ElsaAbpTenantsProvider`、`ElsaAbpDeferringTenantsProvider`、`ElsaAbpCurrentTenantResolver`、`ElsaAbpTenantAccessor`、`ElsaAbpMultiTenancyMiddleware`。
+- `ElsaAbpOptions.DeferTenantActivationUntilReady`：ABP 租户库未迁移时仅返回 Host 租户，避免冷启动失败。
 - 管道：`UseMultiTenancy()` → `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
 
 ## 调用方集成清单

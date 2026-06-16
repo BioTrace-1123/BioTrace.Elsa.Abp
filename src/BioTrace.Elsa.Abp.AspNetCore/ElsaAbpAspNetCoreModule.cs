@@ -49,13 +49,15 @@ public class ElsaAbpAspNetCoreModule : AbpModule
     protected virtual void ConfigureElsaDatabaseMigration(ServiceConfigurationContext context)
     {
         var options = context.Services.ExecutePreConfiguredActions<ElsaAbpOptions>();
-        if (!options.RunMigrations)
-        {
-            return;
-        }
 
         context.Services.AddSingleton<ElsaAbpElsaDatabaseMigrator>();
-        context.Services.AddHostedService<ElsaAbpElsaDatabaseMigrationHostedService>();
+        context.Services.AddSingleton<IElsaDatabaseMigrator>(sp =>
+            sp.GetRequiredService<ElsaAbpElsaDatabaseMigrator>());
+
+        if (options.RunMigrations)
+        {
+            context.Services.AddHostedService<ElsaAbpElsaDatabaseMigrationHostedService>();
+        }
     }
 
     protected virtual void ConfigureElsaSecurity(ServiceConfigurationContext context, IHostEnvironment hostEnvironment)
@@ -112,7 +114,17 @@ public class ElsaAbpAspNetCoreModule : AbpModule
         services.RemoveAll<ITenantAccessor>();
         services.AddSingleton<ITenantAccessor, ElsaAbpTenantAccessor>();
         services.RemoveAll<ITenantsProvider>();
-        services.AddTransient<ITenantsProvider, ElsaAbpTenantsProvider>();
+        services.AddTransient<ElsaAbpTenantsProvider>();
+
+        if (options.DeferTenantActivationUntilReady)
+        {
+            services.AddTransient<ITenantsProvider, ElsaAbpDeferringTenantsProvider>();
+        }
+        else
+        {
+            services.AddTransient<ITenantsProvider, ElsaAbpTenantsProvider>();
+        }
+
         services.Configure<TenantsOptions>(tenantOptions => tenantOptions.IsEnabled = true);
     }
 

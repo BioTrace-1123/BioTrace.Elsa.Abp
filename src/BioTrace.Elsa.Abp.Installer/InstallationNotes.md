@@ -20,6 +20,11 @@ CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `
 
 自动安装**不会**完成以下步骤，请参阅 [NuGet 消费者指南](../../docs/nuget-consumer-guide.md)：
 
+0. **合并配置**（推荐）：
+   ```bash
+   ./scripts/merge-appsettings-elsa.sh --target src/YourApp.HttpApi.Host/appsettings.json
+   ```
+   Studio Client 另合并 [`docs/appsettings.elsa.studio.json`](../../docs/appsettings.elsa.studio.json) 到 `wwwroot/appsettings.json`。
 1. **Elsa 持久化**：引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}`，并创建继承 `ElsaAbpAspNetCoreModule` 的模块，重写 `ConfigureElsaPersistence`。
 2. **连接串**：配置 `ConnectionStrings:Default`（ABP）与 `ConnectionStrings:Elsa`（Elsa，必填且与 Default 分离）。
 3. **Host 管道**：`UseMultiTenancy()`（若启用）→ `UseElsaAbpMultiTenancy()` → `UseElsaWorkflows()`。
@@ -36,6 +41,7 @@ CLI / Studio 会下载 `BioTrace.Elsa.Abp.Installer`，按 `.abpmdl` 与各包 `
      ```
    - `BioTrace.Elsa.Abp.Studio.Client` **不**发布 NuGet；脚手架在调用方解决方案内创建仅含 `Program.cs`、`appsettings.json`、`.csproj` 的项目（`index.html` 由 `Studio.BlazorWasm` 提供）。
    - Host 调用 `AddBioTraceElsaAbpStudioHost()` / `UseBioTraceElsaAbpStudioHost()`；Client 调用 `AddBioTraceElsaAbpStudio()`。
+6. **DbMigrator（生产）**：参考演示 [`host/BioTrace.Elsa.Abp.DbMigrator`](../../host/BioTrace.Elsa.Abp.DbMigrator)；`Elsa:RunMigrations=false` 时在迁移程序中调用 `await MigrateElsaDatabasesAsync(force: true)`。
 
 ## 文档
 

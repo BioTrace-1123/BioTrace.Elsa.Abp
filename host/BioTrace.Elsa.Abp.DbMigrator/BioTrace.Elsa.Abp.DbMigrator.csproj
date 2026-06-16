@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\common.props" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BioTrace.Elsa.Abp</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Volo.Abp.Autofac" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore.PostgreSql" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.Identity.EntityFrameworkCore" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.OpenIddict.EntityFrameworkCore" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.PermissionManagement.EntityFrameworkCore" Version="10.4.0" />
+    <PackageReference Include="Volo.Abp.TenantManagement.EntityFrameworkCore" Version="10.4.0" />
+    <PackageReference Include="Elsa.Persistence.EFCore.PostgreSql" Version="$(ElsaPackageVersion)" />
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.AspNetCore\BioTrace.Elsa.Abp.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\BioTrace.Elsa.Abp.EntityFrameworkCore\BioTrace.Elsa.Abp.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\BioTrace.Elsa.Abp.HttpApi.Host\BioTrace.Elsa.Abp.HttpApi.Host.csproj" />
+  </ItemGroup>
+
+</Project>

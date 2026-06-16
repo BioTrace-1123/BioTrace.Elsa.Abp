@@ -9,6 +9,11 @@
 | [调用方集成指南（NuGet）](docs/nuget-consumer-guide.md) | 其他项目引用 NuGet 包、配置双库、权限与 OpenIddict 的完整教程 |
 | [Installer / `abp add-module`](#通过-abp-cli--abp-studio-安装) | 本模块安装器行为与安装后必做步骤 |
 | [调用方配置示例](docs/appsettings.consumer.example.json) | 调用方 `appsettings.json` 模板（连接串、Elsa 选项、CORS、OpenIddict 客户端） |
+| [Elsa 配置片段](docs/appsettings.elsa.json) / [Studio 配置片段](docs/appsettings.elsa.studio.json) | 可合并的 Elsa / OpenIddict / Studio 配置；配合 [`scripts/merge-appsettings-elsa.sh`](scripts/merge-appsettings-elsa.sh) |
+| [Nexus / LeptonXLite 主题](docs/ui-theme-nexus.md) | UI 主题与 Studio OIDC、租户登录差异 |
+| [Elsa 升级检查清单](docs/elsa-upgrade-checklist.md) | 小版本升级自检（非官方迁移指南） |
+| [集成测试样板](docs/samples/HttpApi.Host.Tests/README.md) | 调用方 `HttpApi.Host.Tests` 最小示例 |
+| [CHANGELOG](CHANGELOG.md) | NuGet 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | Git Flow 与 PR 流程 |
 | [浏览器 E2E（Playwright）](#浏览器-e2eplaywright) | Studio OIDC 全链路、多租户与权限的自动化验证 |
 
@@ -20,7 +25,7 @@
 - [Elsa Workflows](https://elsaworkflows.io/) **3.7.0**（原生集成，非 ABP Elsa Pro）
 - Entity Framework Core 持久化（Provider 由调用方自选；演示项目使用 PostgreSQL）
 
-> `BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；调用方需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。Elsa 版本升级与库表结构变更由调用方参照 [Elsa 官方文档](https://elsaworkflows.io/) 自行处理，本模块不提供升级迁移指南。
+> `BioTrace.Elsa.Abp.AspNetCore` **不**捆绑数据库 Provider；调用方需引用 `Elsa.Persistence.EFCore.{PostgreSql|SqlServer|Sqlite}` 并重写 `ConfigureElsaPersistence`（演示见 `ElsaAbpHostPostgreSqlModule`）。Elsa 表结构迁移见 [Elsa 官方文档](https://elsaworkflows.io/)；升级自检见 [Elsa 升级检查清单](docs/elsa-upgrade-checklist.md)。
 
 ## 解决方案结构
 
@@ -527,6 +532,7 @@ PR 合并前三个 job 均须通过。
 | `BioTrace.Elsa.Abp.Domain` / `Domain.Shared` | 选项与常量（传递） |
 | `BioTrace.Elsa.Abp.HttpApi.Client` | 可选：动态 API 代理 |
 | `BioTrace.Elsa.Abp.Installer` | 可选：ABP CLI / Studio 安装元数据（`abp add-module BioTrace.Elsa.Abp`） |
+| `BioTrace.Elsa.Abp.IntegrationTesting` | 可选：集成测试 WebApplicationFactory 与 OpenIddict 辅助 |
 
 ### 发布前检查清单
 
