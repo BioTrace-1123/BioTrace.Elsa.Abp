@@ -17,10 +17,10 @@ public class AbpTenantHeaderDelegatingHandler : DelegatingHandler
     {
         await _tenantContext.InitializeAsync(cancellationToken);
 
-        var tenantName = _tenantContext.CurrentTenantName;
-        if (!string.IsNullOrWhiteSpace(tenantName))
+        var tenantId = _tenantContext.CurrentTenantId;
+        if (tenantId.HasValue)
         {
-            request.Headers.TryAddWithoutValidation("__tenant", tenantName);
+            request.Headers.TryAddWithoutValidation("__tenant", tenantId.Value.ToString("D"));
         }
 
         return await base.SendAsync(request, cancellationToken);

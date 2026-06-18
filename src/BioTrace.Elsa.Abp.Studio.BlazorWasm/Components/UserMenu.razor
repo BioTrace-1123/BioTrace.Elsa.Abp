@@ -27,14 +27,14 @@
                 <MudSelectItem T="string" Value="@HostTenantValue">Host</MudSelectItem>
                 @foreach (var tenant in AvailableTenants)
                 {
-                    <MudSelectItem T="string" Value="@tenant.Name">@tenant.DisplayName</MudSelectItem>
+                    <MudSelectItem T="string" Value="@tenant.Id">@tenant.DisplayName</MudSelectItem>
                 }
             </MudSelect>
         }
-        else if (!string.IsNullOrWhiteSpace(TenantContext.CurrentTenantName))
+        else if (!string.IsNullOrWhiteSpace(TenantContext.CurrentTenantDisplayName))
         {
             <MudChip T="string" Variant="Variant.Text" Color="Color.Default" Size="Size.Small">
-                @TenantContext.CurrentTenantName
+                @TenantContext.CurrentTenantDisplayName
             </MudChip>
         }
 
@@ -69,7 +69,7 @@
 
     private bool ShowTenantSelector => !TenantContext.IsTenantLocked && AvailableTenants.Count > 0;
 
-    private string SelectedTenantValue => TenantContext.CurrentTenantName ?? HostTenantValue;
+    private string SelectedTenantValue => TenantContext.CurrentTenantId?.ToString("D") ?? HostTenantValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,8 +123,13 @@
 
     private async Task OnTenantChangedAsync(string? tenantValue)
     {
-        var tenantName = string.IsNullOrWhiteSpace(tenantValue) ? null : tenantValue;
-        await TenantContext.SetCurrentTenantAsync(tenantName);
+        Guid? tenantId = null;
+        if (!string.IsNullOrWhiteSpace(tenantValue) && Guid.TryParse(tenantValue, out var parsedTenantId))
+        {
+            tenantId = parsedTenantId;
+        }
+
+        await TenantContext.SetCurrentTenantAsync(tenantId);
         PermissionService.InvalidateCache();
         await PermissionService.GetPermissionsAsync();
         Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
