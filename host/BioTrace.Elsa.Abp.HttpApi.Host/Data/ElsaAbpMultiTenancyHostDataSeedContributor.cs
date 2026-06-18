@@ -61,6 +61,8 @@ public class ElsaAbpMultiTenancyHostDataSeedContributor : ElsaAbpPermissionDataS
             ElsaAbpMultiTenancySeedData.TenantBAdminUserName,
             designerUserName: ElsaAbpMultiTenancySeedData.TenantBDesignerUserName,
             designerEmail: "tenant-b-designer@localhost");
+
+        await EnsureTenantIdAsync(ElsaAbpMultiTenancySeedData.TenantCjkName);
     }
 
     protected virtual async Task SeedTenantAsync(

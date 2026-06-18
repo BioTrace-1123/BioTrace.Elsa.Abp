@@ -19,11 +19,14 @@ export const TestData = {
     tenantB: 'tenant-b',
     tenantADisplayName: 'Tenant A',
     tenantBDisplayName: 'Tenant B',
+    tenantCjk: '宝通',
+    tenantCjkDisplayName: '宝通',
   },
 
   workflows: {
     demoTenantA: 'DemoTenantAWorkflow',
     demoTenantB: 'DemoTenantBWorkflow',
+    demoCjkTenant: 'DemoCjkTenantWorkflow',
     e2eDelay: 'E2eDelayWorkflow',
   },
 } as const;

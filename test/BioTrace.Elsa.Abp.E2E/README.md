@@ -57,7 +57,7 @@ npm run show-report
 | `auth.setup.ts` | 为各角色执行 OIDC 登录并缓存 `storageState` |
 | `studio-smoke.spec.ts` | `admin` 加载 Studio、打开工作流定义列表 |
 | `studio-auth-routing.spec.ts` | OIDC 登录回调与 Studio 路由 |
-| `studio-tenancy.spec.ts` | 租户 A/B 列表隔离；Host `admin` 切换租户后可见租户 A 演示流 |
+| `studio-tenancy.spec.ts` | 租户 A/B 列表隔离；Host `admin` 切换租户后可见租户 A 演示流；切换中文租户名「宝通」验证 `__tenant` Guid 与 API 可用 |
 | `studio-permissions.spec.ts` | `tenant-a-designer` 只读不可创建；`tenant-a-admin` 可创建 |
 | `studio-workflow-lifecycle.spec.ts` | 创建 → 发布 → 执行 → 实例完成 |
 | `studio-instance-cancel.spec.ts` | 运行中 Delay 工作流实例取消 |

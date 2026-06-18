@@ -6,6 +6,11 @@ public static class ElsaAbpMultiTenancySeedData
     public const string TenantAName = "tenant-a";
     public const string TenantBName = "tenant-b";
 
+    /// <summary>CJK tenant name for Studio WASM __tenant header E2E.</summary>
+    public const string TenantCjkName = "宝通";
+
+    public const string DemoCjkTenantWorkflow = "DemoCjkTenantWorkflow";
+
     public const string TenantAAdminUserName = "tenant-a-admin";
     public const string TenantBAdminUserName = "tenant-b-admin";
 

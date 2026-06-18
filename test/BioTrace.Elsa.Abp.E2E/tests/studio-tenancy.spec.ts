@@ -1,4 +1,5 @@
 import { test, expect, projectIs } from '../fixtures/auth.fixture';
+import { attachStudioTenantDiagnostics, assertTenantIdLocalStorage } from '../helpers/studio-tenant-assertions';
 import { TestData } from '../test-data';
 
 test.describe('Studio multi-tenancy (tenant-a-admin)', () => {
@@ -35,5 +36,23 @@ test.describe('Studio multi-tenancy (host admin)', () => {
     await page.reload();
     await studioDefinitions.waitForLoaded();
     await studioDefinitions.expectDefinitionVisible(TestData.workflows.demoTenantA);
+  });
+
+  test('host admin can switch to CJK tenant name without Fetch header errors', async ({
+    page,
+    studioShell,
+    studioDefinitions,
+  }) => {
+    const diagnostics = attachStudioTenantDiagnostics(page);
+
+    await studioShell.gotoDefinitions();
+    await studioShell.selectTenant(TestData.tenants.tenantCjkDisplayName);
+    await studioDefinitions.waitForLoaded();
+
+    diagnostics.assertNoFetchHeaderErrors();
+    diagnostics.assertGuidTenantHeaders();
+    await assertTenantIdLocalStorage(page);
+
+    await studioDefinitions.expectDefinitionVisible(TestData.workflows.demoCjkTenant);
   });
 });
