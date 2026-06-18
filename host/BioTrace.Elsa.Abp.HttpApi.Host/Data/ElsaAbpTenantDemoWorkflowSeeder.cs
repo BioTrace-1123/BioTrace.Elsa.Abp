@@ -69,6 +69,12 @@ public class ElsaAbpTenantDemoWorkflowSeeder : ITransientDependency
             "DemoTenantBWorkflow",
             "Tenant B Demo Workflow",
             cancellationToken);
+
+        await SeedTenantWorkflowAsync(
+            ElsaAbpMultiTenancySeedData.TenantCjkName,
+            ElsaAbpMultiTenancySeedData.DemoCjkTenantWorkflow,
+            "CJK Tenant Demo Workflow",
+            cancellationToken);
     }
 
     protected virtual async Task SeedTenantWorkflowAsync(
