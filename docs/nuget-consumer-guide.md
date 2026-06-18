@@ -462,7 +462,7 @@ public override void OnApplicationInitialization(ApplicationInitializationContex
 }
 ```
 
-`UseElsaWorkflows()` 定义于 [`ElsaAbpApplicationBuilderExtensions`](../src/BioTrace.Elsa.Abp.AspNetCore/ElsaAbpApplicationBuilderExtensions.cs)。
+`UseElsaWorkflows()` 定义于 [`ElsaAbpApplicationBuilderExtensions`](../src/BioTrace.Elsa.Abp.AspNetCore/ElsaAbpApplicationBuilderExtensions.cs)。其内部已包含 FastEndpoints 204→200 JSON 响应修复（解决 Elsa Studio 保存/发布时 `SaveWorkflowDefinitionResponse` 反序列化失败），**无需**再参考 [abpframework/abp#23362](https://github.com/abpframework/abp/issues/23362) 手动添加中间件。
 
 ### 注册自定义 Activity（可选）
 

@@ -1,3 +1,4 @@
+using BioTrace.Elsa.Abp.Middleware;
 using Elsa.Extensions;
 using FastEndpoints;
 using Microsoft.AspNetCore.Builder;
@@ -22,6 +23,7 @@ public static class ElsaAbpApplicationBuilderExtensions
         fastEndpointsConfig.Security.PermissionsClaimType = options.PermissionsClaimType;
         fastEndpointsConfig.Security.RoleClaimType = options.RoleClaimType;
 
+        app.UseMiddleware<ElsaAbpFastEndpointsNoContentFixMiddleware>();
         app.UseWorkflowsApi();
 
         if (options.EnableElsaSwagger)
