@@ -56,11 +56,15 @@ export class StudioShellPage {
       (response) => response.url().includes('/elsa/api/workflow-definitions') && response.ok(),
       { timeout: E2E_TIMEOUTS.studioPage },
     );
+    const currentUserResponse = this.page.waitForResponse(
+      (response) => response.url().includes('/identity/users/me') && response.ok(),
+      { timeout: E2E_TIMEOUTS.studioPage },
+    );
     // MudSelect renders items as paragraphs inside a popover, not native <option> elements.
     const tenantOption = this.page.locator('.mud-popover').getByText(displayName, { exact: true });
     await tenantOption.waitFor({ state: 'visible', timeout: E2E_TIMEOUTS.ui });
     await tenantOption.click();
-    await definitionsResponse;
+    await Promise.all([definitionsResponse, currentUserResponse]);
   }
 
   async gotoDefinitions(): Promise<void> {
