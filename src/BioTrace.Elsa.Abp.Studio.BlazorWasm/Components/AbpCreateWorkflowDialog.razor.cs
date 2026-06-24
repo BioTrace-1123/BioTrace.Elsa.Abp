@@ -30,15 +30,11 @@ public partial class AbpCreateWorkflowDialog
 
     [Inject] private IElsaAbpStudioPermissionService PermissionService { get; set; } = null!;
 
-    protected override void OnParametersSet()
+    protected override async Task OnInitializedAsync()
     {
         _metadataModel.Name = WorkflowName;
         _editContext = new(_metadataModel);
         _validator = new(WorkflowDefinitionService, Localizer);
-    }
-
-    protected override async Task OnInitializedAsync()
-    {
         _canCreate = await PermissionService.CanWriteWorkflowDefinitionsAsync();
     }
 
